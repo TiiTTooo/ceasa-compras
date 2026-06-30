@@ -4,13 +4,6 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
 <title>CEASA Compras</title>
-<link rel="manifest" href="/manifest.json"/>
-<meta name="theme-color" content="#3ecf6e"/>
-<meta name="apple-mobile-web-app-capable" content="yes"/>
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
-<meta name="apple-mobile-web-app-title" content="CEASA"/>
-<link rel="apple-touch-icon" href="/icon-192.png"/>
-<script>if('serviceWorker' in navigator){window.addEventListener('load',()=>{navigator.serviceWorker.register('/sw.js').catch(()=>{});});}</script>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet"/>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.44.0/tabler-icons.min.css"/>
@@ -2061,12 +2054,27 @@ function loadLojaForm(id){
   if(loja.logo){el('logoPreview').src=loja.logo;el('logoPreview').style.display='';el('logoIcon').style.display='none';}
   else{el('logoPreview').style.display='none';el('logoIcon').style.display='';}
 }
-function salvarLoja(){
+async function salvarLoja(){
   const targetId=editingLojaId||currentLojaId;
   const loja=lojas.find(l=>l.id===targetId);if(!loja)return;
-  loja.nome=el('lojaNome').value.trim()||loja.nome;loja.endereco=el('lojaEndereco').value.trim();
-  loja.cidade=el('lojaCidade').value.trim()||loja.cidade;loja.cnpj=el('lojaCnpj').value.trim();loja.tel=el('lojaTel').value.trim();
+  loja.nome=el('lojaNome').value.trim()||loja.nome;
+  loja.endereco=el('lojaEndereco').value.trim();
+  loja.cidade=el('lojaCidade').value.trim()||loja.cidade;
+  loja.cnpj=el('lojaCnpj').value.trim();
+  loja.tel=el('lojaTel').value.trim();
   if(el('logoPreview').style.display!=='none')loja.logo=el('logoPreview').src;
+  // Sincroniza com Supabase
+  try{
+    await db.from('lojas').update({
+      nome: loja.nome,
+      endereco: loja.endereco||null,
+      cidade: loja.cidade||null,
+      cnpj: loja.cnpj||null,
+      tel: loja.tel||null,
+      logo: loja.logo||null,
+      cor_destaque: loja.cor||'#3ecf6e'
+    }).eq('id', targetId);
+  }catch(e){ /* silencioso — dados já atualizados localmente */ }
   editingLojaId=null;el('btnCancelLoja').style.display='none';el('lojaFormTitle').textContent='Cadastro da Loja';
   refreshHeader();renderLojas();loadLojaForm(currentLojaId);showToast('Loja salva!');
 }
@@ -2378,6 +2386,26 @@ function verificarPendentesOntem(){
 async function carregarDadosDaLoja(){
   if(!currentLojaId)return;
   try{
+    // Carrega dados atualizados da loja
+    const { data: lojaData } = await db
+      .from('lojas')
+      .select('*')
+      .eq('id', currentLojaId)
+      .single();
+    if(lojaData){
+      const idx=lojas.findIndex(l=>l.id===currentLojaId);
+      const lojaAtual={
+        id: lojaData.id,
+        nome: lojaData.nome,
+        endereco: lojaData.endereco||'',
+        cidade: lojaData.cidade||'',
+        cnpj: lojaData.cnpj||'',
+        tel: lojaData.tel||'',
+        logo: lojaData.logo||'',
+        cor: lojaData.cor_destaque||'#3ecf6e'
+      };
+      if(idx===-1) lojas.push(lojaAtual); else lojas[idx]=lojaAtual;
+    }
     // Pedidos (itens_pedido)
     const { data: pedidosData, error: pedidosErr } = await db
       .from('itens_pedido')
