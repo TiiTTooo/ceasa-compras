@@ -1797,28 +1797,35 @@ function populateFornecedoresAll(cId,lId){
   const cat=el(cId).value;
   el(lId).innerHTML=getAllFornByCat(cat).map(f=>`<option value="${f}">`).join('');
 }
-function salvarFornecedor(){
+async function salvarFornecedor(){
   const nome=el('fornNomeInput').value.trim();
   const cat=el('fornCatInput').value;
   if(!nome){showToast('Informe o nome do fornecedor');return;}
   if(editingFornId!==null){
-    const f=fornCustom[cat].find(x=>x.id===editingFornId)||
-      Object.values(fornCustom).flat().find(x=>x.id===editingFornId);
-    // procura em todas categorias
     let found=null,foundCat=null;
     ['fruta','legume','verdura'].forEach(c=>{const x=fornCustom[c].find(x=>x.id===editingFornId);if(x){found=x;foundCat=c;}});
     if(found){
-      if(foundCat!==cat){fornCustom[foundCat]=fornCustom[foundCat].filter(x=>x.id!==editingFornId);if(!fornCustom[cat].find(x=>x.nome===nome))fornCustom[cat].push({id:editingFornId,nome});}
-      else{found.nome=nome;}
+      if(foundCat!==cat){
+        fornCustom[foundCat]=fornCustom[foundCat].filter(x=>x.id!==editingFornId);
+        if(!fornCustom[cat].find(x=>x.nome===nome))fornCustom[cat].push({id:editingFornId,nome});
+      } else {found.nome=nome;}
+      try{await db.from('fornecedores').update({nome,categoria:cat}).eq('id',editingFornId);}catch(e){}
     }
     editingFornId=null;el('fornFormTitle').textContent='Cadastrar fornecedor';el('fornFormBtn').textContent='Adicionar';el('btnCancelForn').style.display='none';
     showToast('Fornecedor atualizado!');
   } else {
     const todas=getAllFornByCat(cat);
     if(todas.find(x=>x.toLowerCase()===nome.toLowerCase())){showToast('Fornecedor já cadastrado nessa categoria');return;}
-    fornCustom[cat].push({id:nextId++,nome});
+    const novo={id:nextId++,nome};
+    fornCustom[cat].push(novo);
     fornCustom[cat].sort((a,b)=>a.nome.localeCompare(b.nome,'pt-BR',{sensitivity:'base'}));
-    showToast(`Fornecedor "${nome}" adicionado!`);
+    showToast('Fornecedor "'+nome+'" adicionado!');
+    try{
+      const {data,error}=await db.from('fornecedores').insert({
+        loja_id:currentLojaId,nome,categoria:cat,padrao:false
+      }).select().single();
+      if(!error&&data){const f=fornCustom[cat].find(x=>x===novo);if(f)f.id=data.id;}
+    }catch(e){}
   }
   el('fornNomeInput').value='';renderFornecedoresCadastro();populateFornecedores('catAvulso','fornAvulsoList');
 }
@@ -1866,6 +1873,7 @@ function switchFornView(view){
 function removeForn(id,cat){
   fornCustom[cat]=fornCustom[cat].filter(x=>x.id!==id);
   renderFornecedoresCadastro();populateFornecedores('catAvulso','fornAvulsoList');showToast('Fornecedor removido');
+  try{db.from('fornecedores').delete().eq('id',id);}catch(e){}
 }
 function renderFornecedoresCadastro(){
   const CAT_LIST=[{k:'fruta',emoji:'🍊',label:'Frutas'},{k:'legume',emoji:'🥕',label:'Legumes'},{k:'verdura',emoji:'🥬',label:'Verduras'}];
@@ -1942,13 +1950,22 @@ function renderFornecedores(){
 }
 
 /* ── DESPESAS ── */
-function addDespesa(){
+async function addDespesa(){
   const desc=el('descDespesa').value.trim();const val=parseFloat(el('valorDespesa').value)||0;
   if(!desc||val<=0){showToast('Preencha descrição e valor');return;}
   const dataDespesaEl=el('dataDespesa');
   const dt=dataDespesaEl&&dataDespesaEl.value?dataDespesaEl.value:currentDate;
-  despesas.push({id:nextId++,descricao:desc,valor:val,forma:el('formaDespesa').value,lojaId:currentLojaId,data:dt});
+  const nova={id:nextId++,descricao:desc,valor:val,forma:el('formaDespesa').value,lojaId:currentLojaId,data:dt};
+  despesas.push(nova);
   el('descDespesa').value='';el('valorDespesa').value='';renderDespesas();showToast('Despesa adicionada!');
+  // Sync com Supabase em segundo plano
+  try{
+    const {data,error}=await db.from('despesas').insert({
+      loja_id:nova.lojaId,data:nova.data,descricao:nova.descricao,
+      valor:nova.valor,forma:nova.forma
+    }).select().single();
+    if(!error&&data){const d=despesas.find(x=>x===nova);if(d)d.id=data.id;}
+  }catch(e){}
 }
 let despFiltroAtual='hoje';
 function despSetFiltro(f){
@@ -2041,7 +2058,10 @@ function renderDespesas(){
   var pgtEl=el('totDespesaPGT');if(pgtEl)pgtEl.textContent=fmt(totPGT);
   var fEl=el('totDespesaF');if(fEl)fEl.textContent=fmt(totF);
 }
-function removeDespesa(id){despesas=despesas.filter(d=>d.id!==id);renderDespesas();showToast('Despesa removida');}
+function removeDespesa(id){
+  despesas=despesas.filter(d=>d.id!==id);renderDespesas();showToast('Despesa removida');
+  try{db.from('despesas').delete().eq('id',id);}catch(e){}
+}
 
 /* ── LOJA CADASTRO ── */
 function previewLogo(inp){
@@ -2444,6 +2464,35 @@ async function carregarDadosDaLoja(){
         custoUnitario:c.custoUnitario, fornecedor:c.fornecedor, lojaId:c.lojaId
       }));
     }
+    // Despesas
+    const {data:despData,error:despErr}=await db.from('despesas')
+      .select('*').eq('loja_id',currentLojaId).order('data',{ascending:true});
+    if(!despErr&&despData){
+      despesas=despData.map(d=>({
+        id:d.id,descricao:d.descricao,valor:parseFloat(d.valor),
+        forma:d.forma,lojaId:d.loja_id,data:d.data
+      }));
+    }
+
+    // Fornecedores customizados
+    const {data:fornData,error:fornErr}=await db.from('fornecedores')
+      .select('*').eq('loja_id',currentLojaId).eq('padrao',false).order('nome');
+    if(!fornErr&&fornData){
+      fornCustom={fruta:[],legume:[],verdura:[]};
+      fornData.forEach(f=>{
+        const cat=f.categoria;
+        if(fornCustom[cat])fornCustom[cat].push({id:f.id,nome:f.nome});
+      });
+    }
+
+    // Margens customizadas
+    const {data:margData,error:margErr}=await db.from('margens_custom')
+      .select('*').eq('loja_id',currentLojaId);
+    if(!margErr&&margData){
+      margemCustom={};
+      margData.forEach(m=>{margemCustom[m.produto]={tipo:m.tipo,valor:parseFloat(m.valor)};});
+    }
+
   }catch(e){
     showToast('Aviso: não foi possível sincronizar com o servidor. Trabalhando offline.');
   }
@@ -2575,17 +2624,24 @@ function onMargemChange(){
   el('margemLabel').textContent=el('margemRange').value+'%';
   renderPrecosMedia();
 }
-function aplicarMargemTodos(){
+async function aplicarMargemTodos(){
   const tipo=el('margemGlobalTipo').value;
   const val=parseFloat(el('margemGlobalValor').value);
   if(isNaN(val)||val<0){showToast('Informe um valor válido');return;}
-  // aplica a todos os produtos com histórico
   const myHist=priceHistory.filter(h=>h.lojaId===currentLojaId);
   const prods=[...new Set(myHist.map(h=>h.produto))];
   prods.forEach(p=>margemCustom[p]={tipo,valor:val});
-  renderPrecosMedia();showToast(`Margem de ${tipo==='pct'?val+'%':'R$ '+val.toFixed(2)} aplicada a ${prods.length} produto(s)!`);
+  renderPrecosMedia();
+  showToast('Margem de '+(tipo==='pct'?val+'%':'R$ '+val.toFixed(2))+' aplicada a '+prods.length+' produto(s)!');
+  try{
+    const rows=prods.map(p=>({loja_id:currentLojaId,produto:p,tipo,valor:val,updated_at:new Date().toISOString()}));
+    if(rows.length)await db.from('margens_custom').upsert(rows,{onConflict:'loja_id,produto'});
+  }catch(e){}
 }
-function limparMargensCustom(){margemCustom={};renderPrecosMedia();showToast('Margens personalizadas resetadas');}
+async function limparMargensCustom(){
+  margemCustom={};renderPrecosMedia();showToast('Margens personalizadas resetadas');
+  try{await db.from('margens_custom').delete().eq('loja_id',currentLojaId);}catch(e){}
+}
 let precosViewAtual='margem';
 function switchPrecosView(view){
   precosViewAtual=view;
@@ -2751,34 +2807,42 @@ function precosPreview(inp, tipo, pid, media){
   allInputs.forEach(function(i){ i.style.borderColor = i.value!=='' ? 'var(--amber)' : 'var(--border2)'; });
 }
 
-function precosSalvar(pid){
+async function precosSalvar(pid){
   const prod = window._precosPidMap && window._precosPidMap[pid];
   if(!prod){ showToast('Erro: produto não encontrado'); return; }
-  const allInputs = document.querySelectorAll(`[data-pid="${pid}"]`);
+  const allInputs = document.querySelectorAll('[data-pid="'+pid+'"]');
   let pctInp=null, valInp=null;
-  allInputs.forEach(i=>{ if(i.dataset.tipo==='pct') pctInp=i; if(i.dataset.tipo==='val') valInp=i; });
+  allInputs.forEach(function(i){ if(i.dataset.tipo==='pct') pctInp=i; if(i.dataset.tipo==='val') valInp=i; });
   const pctV = pctInp ? parseFloat(pctInp.value) : NaN;
   const valV = valInp ? parseFloat(valInp.value) : NaN;
-  // R$ tem prioridade se preenchido
+  let tipo=null,valor=null;
   if(valInp && valInp.value!=='' && !isNaN(valV) && valV>=0){
-    margemCustom[prod]={tipo:'valor',valor:valV};
-    showToast(`${prod}: +R$ ${valV.toFixed(2)} salvo!`);
+    margemCustom[prod]={tipo:'valor',valor:valV};tipo='valor';valor=valV;
+    showToast(prod+': +R$ '+valV.toFixed(2)+' salvo!');
   } else if(!isNaN(pctV) && pctV>=0){
-    margemCustom[prod]={tipo:'pct',valor:pctV};
-    showToast(`${prod}: ${pctV}% salvo!`);
+    margemCustom[prod]={tipo:'pct',valor:pctV};tipo='pct';valor=pctV;
+    showToast(prod+': '+pctV+'% salvo!');
   } else {
     delete margemCustom[prod];
-    showToast(`Margem de "${prod}" resetada`);
+    showToast('Margem de "'+prod+'" resetada');
+    try{await db.from('margens_custom').delete().eq('loja_id',currentLojaId).eq('produto',prod);}catch(e){}
+    renderPrecosMedia();return;
   }
+  try{
+    await db.from('margens_custom').upsert({
+      loja_id:currentLojaId,produto:prod,tipo,valor,updated_at:new Date().toISOString()
+    },{onConflict:'loja_id,produto'});
+  }catch(e){}
   renderPrecosMedia();
 }
 
-function precosResetar(pid){
+async function precosResetar(pid){
   const prod = window._precosPidMap && window._precosPidMap[pid];
   if(!prod) return;
   delete margemCustom[prod];
   renderPrecosMedia();
   showToast('Margem resetada para o padrão global');
+  try{await db.from('margens_custom').delete().eq('loja_id',currentLojaId).eq('produto',prod);}catch(e){}
 }
 
 window.addEventListener('load',async function(){
