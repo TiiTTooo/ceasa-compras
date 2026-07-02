@@ -56,7 +56,7 @@ body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--t
 .app-layout{display:flex;flex:1;overflow:hidden;}
 
 /* ── HEADER ── */
-header{background:var(--bg2);border-bottom:1px solid var(--border);padding:0 1rem;height:56px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;transition:background .25s;}
+header{background:var(--bg2);border-bottom:1px solid var(--border);padding:0 1.25rem;height:68px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;transition:background .25s;}
 .logo{display:flex;align-items:center;gap:10px;font-weight:700;font-size:16px;}
 .logo-icon{width:32px;height:32px;background:var(--accent);border-radius:8px;display:flex;align-items:center;justify-content:center;color:var(--accent-txt);font-size:18px;overflow:hidden;flex-shrink:0;}
 .logo-icon img{width:100%;height:100%;object-fit:cover;}
@@ -1014,7 +1014,21 @@ function statusBadge(s){return s==='comprado'?badge('badge-comprado','✓ Compra
 function showToast(msg){const t=el('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2200);}
 
 /* ── THEME ── */
-function toggleTheme(){document.documentElement.dataset.theme=el('darkToggle').checked?'dark':'light';}
+function toggleTheme(){
+  const theme=el('darkToggle').checked?'dark':'light';
+  document.documentElement.dataset.theme=theme;
+  try{localStorage.setItem('ceasa_theme',theme);}catch(e){}
+}
+function loadTheme(){
+  try{
+    const saved=localStorage.getItem('ceasa_theme');
+    if(saved){
+      document.documentElement.dataset.theme=saved;
+      const tog=el('darkToggle');
+      if(tog)tog.checked=(saved==='dark');
+    }
+  }catch(e){}
+}
 function initColorSwatches(){
   el('colorSwatches').innerHTML='<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;width:100%;">'+
     ACCENT_COLORS.map((c,i)=>
@@ -2492,7 +2506,15 @@ let asaasKey='', asaasModo='sandbox';
 async function renderMaster(){
   if(!currentUser||!currentUser.isAdmin)return;
   // Carregar todas as lojas + assinaturas
-  const {data}=await db.from('lojas').select('*, assinaturas(*)').order('id');
+  // Buscar lojas e assinaturas separadamente para garantir dados frescos
+  const {data:lojasData}=await db.from('lojas').select('*').order('id');
+  const {data:subsData}=await db.from('assinaturas').select('*');
+  if(!lojasData){el('masterLista').innerHTML='<div class="empty">Erro ao carregar dados.</div>';return;}
+  // Juntar manualmente
+  const data=lojasData.map(l=>({
+    ...l,
+    assinaturas: subsData?subsData.filter(s=>s.loja_id===l.id):[]
+  }));
   if(!data){el('masterLista').innerHTML='<div class="empty">Erro ao carregar dados.</div>';return;}
   todasLojas=data;
   const busca=(el('masterBusca').value||'').toLowerCase();
@@ -2573,17 +2595,29 @@ async function renderMaster(){
 }
 
 async function salvarConfigLoja(lojaId){
-  const valor=parseFloat(document.getElementById('masterVal_'+lojaId).value)||199;
-  const plano=document.getElementById('masterPlano_'+lojaId).value;
-  const trialFim=document.getElementById('masterTrial_'+lojaId).value;
-  const status=document.getElementById('masterStatus_'+lojaId).value;
+  const valEl=document.getElementById('masterVal_'+lojaId);
+  const planoEl=document.getElementById('masterPlano_'+lojaId);
+  const trialEl=document.getElementById('masterTrial_'+lojaId);
+  const statusEl=document.getElementById('masterStatus_'+lojaId);
+  if(!valEl||!planoEl||!statusEl){showToast('Erro: campos não encontrados');return;}
+  const valor=parseFloat(valEl.value);
+  if(isNaN(valor)||valor<0){showToast('Valor inválido');return;}
+  const plano=planoEl.value;
+  const trialFim=trialEl&&trialEl.value?trialEl.value:null;
+  const status=statusEl.value;
   try{
-    await db.from('assinaturas').upsert({
-      loja_id:lojaId,valor_mensal:valor,plano,trial_fim:trialFim,status,
+    const {error}=await db.from('assinaturas').upsert({
+      loja_id:lojaId,
+      valor_mensal:valor,
+      plano:plano,
+      trial_fim:trialFim,
+      status:status,
       updated_at:new Date().toISOString()
     },{onConflict:'loja_id'});
-    showToast('Configuração salva!');
-    renderMaster();
+    if(error){showToast('Erro: '+error.message);return;}
+    showToast('✅ Configuração salva! R$ '+valor+'/mês · '+status);
+    // Aguarda um momento antes de recarregar para garantir persistência
+    setTimeout(()=>renderMaster(),500);
   }catch(e){showToast('Erro ao salvar: '+e.message);}
 }
 
@@ -3083,6 +3117,7 @@ async function precosResetar(pid){
 }
 
 window.addEventListener('load',async function(){
+  loadTheme();
   el('loginEmail').value='';
   // tryAutoLogin já consulta a sessão real do Supabase Auth
   // (e chama enterApp() internamente se houver sessão válida)
