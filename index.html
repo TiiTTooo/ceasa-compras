@@ -449,6 +449,11 @@ button{font-family:inherit;font-size:14px;font-weight:600;cursor:pointer;border-
 
         <!-- VIEW: POR CATEGORIA -->
         <div id="ceasa-view-categoria">
+          <div style="display:flex;gap:6px;margin-bottom:.875rem;flex-wrap:wrap;" id="ceasaCatBtns">
+            <button class="cat-btn active" data-cat="fruta" onclick="switchCeasaCat('fruta')" style="flex:1;min-width:90px;font-size:15px;">🍊 Frutas <span id="catCount-fruta" style="font-size:11px;opacity:.7;"></span></button>
+            <button class="cat-btn" data-cat="legume" onclick="switchCeasaCat('legume')" style="flex:1;min-width:90px;font-size:15px;">🥕 Legumes <span id="catCount-legume" style="font-size:11px;opacity:.7;"></span></button>
+            <button class="cat-btn" data-cat="verdura" onclick="switchCeasaCat('verdura')" style="flex:1;min-width:90px;font-size:15px;">🥬 Verduras <span id="catCount-verdura" style="font-size:11px;opacity:.7;"></span></button>
+          </div>
           <div id="listaPendentesCat"></div>
           <div id="listaNaoCompradosCat"></div>
         </div>
@@ -1663,10 +1668,24 @@ function switchCeasaView(view){
   if(view==='item'){renderPendentes();renderNaoComprados();}
 }
 
+let ceasaCatAtiva='fruta';
+function switchCeasaCat(cat){
+  ceasaCatAtiva=cat;
+  document.querySelectorAll('#ceasaCatBtns .cat-btn').forEach(b=>b.classList.toggle('active',b.dataset.cat===cat));
+  renderPendentesCat();
+}
+
 function renderPendentesCat(){
   const itens=itensPedido.filter(i=>i.lojaId===currentLojaId&&i.data===currentDate&&i.status==='pendente');
   const naoComp=itensPedido.filter(i=>i.lojaId===currentLojaId&&i.data===currentDate&&i.status==='nao_comprado');
   const CATS=[{k:'fruta',emoji:'🍊',label:'Frutas'},{k:'legume',emoji:'🥕',label:'Legumes'},{k:'verdura',emoji:'🥬',label:'Verduras'}];
+
+  // Atualiza contadores nos botões
+  CATS.forEach(({k})=>{
+    const count=itens.filter(p=>p.categoria===k).length;
+    const badge=el('catCount-'+k);
+    if(badge)badge.textContent=count>0?'('+count+')':'';
+  });
 
   if(!itens.length&&!naoComp.length){
     el('listaPendentesCat').innerHTML='<div class="empty"><i class="ti ti-checks"></i>Nenhum pendente nesse dia.</div>';
@@ -1674,15 +1693,16 @@ function renderPendentesCat(){
     return;
   }
 
+  // Mostra apenas a categoria ativa
+  const catInfo=CATS.find(c=>c.k===ceasaCatAtiva);
+  const grupo=itens.filter(p=>p.categoria===ceasaCatAtiva);
+
   let html='';
-  CATS.forEach(({k,emoji,label})=>{
-    const grupo=itens.filter(p=>p.categoria===k);
-    if(!grupo.length)return;
-    html+=`<div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;margin-bottom:1rem;">
-      <div style="padding:.625rem 1rem;background:var(--bg3);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;">
-        <span style="font-size:14px;font-weight:700;">${emoji} ${label}</span>
-        <span style="font-size:12px;color:var(--text2);">${grupo.length} item${grupo.length!==1?'ns':''}</span>
-      </div>`;
+  if(!grupo.length){
+    html='<div class="empty" style="padding:2rem;text-align:center;"><i class="ti ti-checks" style="font-size:28px;display:block;margin-bottom:.5rem;"></i>Nenhum pendente em '+catInfo.label+' hoje.</div>';
+  } else {
+    html+='<div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;margin-bottom:1rem;">';
+    html+='<div style="padding:.625rem 1rem;background:var(--bg3);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;"><span style="font-size:14px;font-weight:700;">'+catInfo.emoji+' '+catInfo.label+'</span><span style="font-size:12px;color:var(--text2);">'+grupo.length+' item'+(grupo.length!==1?'ns':'')+'</span></div>';
     grupo.forEach(p=>{
       html+=`<div style="border-bottom:1px solid var(--border);padding:.75rem 1rem;">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.625rem;">
@@ -1723,9 +1743,9 @@ function renderPendentesCat(){
       </div>`;
     });
     html+='</div>';
-  });
+  }
 
-  el('listaPendentesCat').innerHTML=html||'<div class="empty"><i class="ti ti-checks"></i>Nenhum pendente nesse dia.</div>';
+  el('listaPendentesCat').innerHTML=html;
 
   // não comprados por categoria
   let htmlNao='';
