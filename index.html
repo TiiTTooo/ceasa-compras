@@ -325,6 +325,7 @@ button{font-family:inherit;font-size:14px;font-weight:600;cursor:pointer;border-
       <div class="side-btn" data-tab="loja"         onclick="switchTab('loja')"><i class="ti ti-building-store"></i> Minha Loja</div>
       <div class="side-btn" data-tab="usuarios"     onclick="switchTab('usuarios')" id="sideUsuarios"><i class="ti ti-users"></i> Usuários</div>
       <div class="side-btn" data-tab="assinatura"   onclick="switchTab('assinatura')"><i class="ti ti-credit-card"></i> Assinatura</div>
+      <div class="side-btn" data-tab="master" onclick="switchTab('master')" id="sideMaster" style="display:none;color:var(--amber);"><i class="ti ti-crown"></i> Master</div>
     </div>
 
     <main id="mainContent">
@@ -665,19 +666,86 @@ button{font-family:inherit;font-size:14px;font-weight:600;cursor:pointer;border-
       </section>
 
       <!-- ASSINATURA -->
+      <!-- ASSINATURA -->
       <section id="tab-assinatura" style="display:none;">
         <div class="card" style="text-align:center;padding:1.5rem;">
-          <div style="font-size:48px;margin-bottom:.75rem;" id="subIconBig">✅</div>
-          <h2 style="font-size:18px;font-weight:700;margin-bottom:.375rem;" id="subStatusTitle">Assinatura Ativa</h2>
-          <p style="font-size:13px;color:var(--text2);" id="subStatusDesc">Plano ativo</p>
+          <div style="font-size:48px;margin-bottom:.75rem;" id="subIconBig">⏳</div>
+          <h2 style="font-size:18px;font-weight:700;margin-bottom:.375rem;" id="subStatusTitle">Período de Teste</h2>
+          <p style="font-size:13px;color:var(--text2);" id="subStatusDesc">3 dias gratuitos</p>
         </div>
-        <div class="sh"><i class="ti ti-building-store"></i> Plano por loja</div>
-        <div id="lojaSubList"></div>
-        <div class="sh" style="margin-top:1rem;" id="shPagamento"><i class="ti ti-credit-card"></i> Pagamento</div>
+        <div id="subDetalhes" style="display:none;">
+          <div class="stat-grid" style="margin-bottom:1rem;">
+            <div class="stat"><div class="stat-label">Plano</div><div class="stat-value" id="subPlanoLabel">—</div></div>
+            <div class="stat"><div class="stat-label">Valor</div><div class="stat-value" id="subValorLabel">—</div></div>
+            <div class="stat" style="border-color:var(--accent-d);"><div class="stat-label" style="color:var(--accent);">Próxima cobrança</div><div class="stat-value" style="color:var(--accent);" id="subProxLabel">—</div></div>
+          </div>
+        </div>
         <div class="card" id="payCard">
-          <button class="btn-primary" onclick="simulatePay()"><i class="ti ti-credit-card"></i> Ativar / Renovar assinatura (demo)</button>
-          <p style="font-size:12px;color:var(--text3);text-align:center;margin-top:.625rem;">Integração com gateway de pagamento (Stripe / Asaas) a ser configurada</p>
+          <div class="card-label">Assinar agora</div>
+          <div style="display:flex;gap:.5rem;margin-bottom:.75rem;flex-wrap:wrap;">
+            <button id="btnPlanoMensal" class="btn-primary" onclick="selecionarPlano('mensal')" style="flex:1;">
+              <i class="ti ti-calendar-month"></i> Mensal — R$ <span id="valMensalLabel">199</span>/mês
+            </button>
+            <button id="btnPlanoAnual" class="btn-ghost" onclick="selecionarPlano('anual')" style="flex:1;">
+              <i class="ti ti-calendar"></i> Anual — R$ <span id="valAnualLabel">1.990</span>/ano
+            </button>
+          </div>
+          <div id="payLinkArea" style="display:none;background:var(--accent-bg);border:1px solid var(--accent-d);border-radius:var(--radius-sm);padding:.875rem;text-align:center;">
+            <p style="font-size:13px;font-weight:600;color:var(--accent);margin-bottom:.5rem;">Link de pagamento gerado!</p>
+            <a id="payLink" href="#" target="_blank" class="btn-primary" style="display:inline-block;text-decoration:none;">
+              <i class="ti ti-external-link"></i> Pagar agora
+            </a>
+          </div>
+          <div id="payLoading" style="display:none;text-align:center;padding:.5rem;color:var(--text2);font-size:13px;">
+            <i class="ti ti-loader-2"></i> Gerando link de pagamento…
+          </div>
         </div>
+      </section>
+
+      <!-- MASTER (só admin) -->
+      <section id="tab-master" style="display:none;">
+        <div style="background:var(--amber-bg);border:1px solid var(--amber);border-radius:var(--radius-sm);padding:.75rem 1rem;margin-bottom:1rem;display:flex;align-items:center;gap:10px;">
+          <i class="ti ti-crown" style="color:var(--amber);font-size:20px;"></i>
+          <span style="font-size:13px;font-weight:700;color:var(--amber);">Painel Master — acesso exclusivo</span>
+        </div>
+
+        <!-- Resumo geral -->
+        <div class="stat-grid" style="margin-bottom:1rem;">
+          <div class="stat"><div class="stat-label">Total de lojas</div><div class="stat-value" id="mTotalLojas">0</div></div>
+          <div class="stat" style="border-color:var(--accent-d);"><div class="stat-label" style="color:var(--accent);">Assinaturas ativas</div><div class="stat-value" style="color:var(--accent);" id="mAtivas">0</div></div>
+          <div class="stat"><div class="stat-label">Em trial</div><div class="stat-value" id="mTrial">0</div></div>
+          <div class="stat" style="border-color:var(--red);"><div class="stat-label" style="color:var(--red);">Vencidas</div><div class="stat-value" style="color:var(--red);" id="mVencidas">0</div></div>
+          <div class="stat" style="border-color:var(--amber);"><div class="stat-label" style="color:var(--amber);">MRR estimado</div><div class="stat-value" style="color:var(--amber);" id="mMRR">R$ 0</div></div>
+        </div>
+
+        <!-- Chave Asaas -->
+        <div class="card" style="margin-bottom:1rem;">
+          <div class="card-label">Configuração do Asaas</div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <input id="asaasKeyInput" type="password" placeholder="API Key do Asaas ($aact_...)" style="flex:3;min-width:200px;font-family:monospace;"/>
+            <select id="asaasModoInput" style="flex:1;min-width:120px;">
+              <option value="sandbox">Sandbox (teste)</option>
+              <option value="producao">Produção</option>
+            </select>
+            <button class="btn-ghost" onclick="salvarConfigAsaas()" style="white-space:nowrap;"><i class="ti ti-device-floppy"></i> Salvar</button>
+          </div>
+          <p style="font-size:11px;color:var(--text3);margin-top:.5rem;">Use Sandbox para testar. Mude para Produção quando for cobrar de verdade.</p>
+        </div>
+
+        <!-- Filtro -->
+        <div style="display:flex;gap:8px;margin-bottom:.75rem;flex-wrap:wrap;">
+          <input id="masterBusca" placeholder="Buscar loja…" oninput="renderMaster()" style="flex:2;min-width:160px;"/>
+          <select id="masterFiltroStatus" onchange="renderMaster()" style="flex:1;min-width:130px;">
+            <option value="">Todos os status</option>
+            <option value="trial">Em trial</option>
+            <option value="ativa">Ativas</option>
+            <option value="vencida">Vencidas</option>
+            <option value="cancelada">Canceladas</option>
+          </select>
+        </div>
+
+        <!-- Lista de lojas -->
+        <div id="masterLista"></div>
       </section>
 
       <!-- COMPRAS REALIZADAS -->
@@ -1057,6 +1125,9 @@ async function enterApp(){
   refreshHeader();
   await carregarDadosDaLoja();
   init();
+  // Mostrar aba master só para admin
+  const masterBtn=el('sideMaster');
+  if(masterBtn&&currentUser&&currentUser.isAdmin)masterBtn.style.display='';
   setTimeout(checkSubscription,300);
 }
 
@@ -1168,18 +1239,30 @@ function renderHome(){
 
 /* ── SUBSCRIPTION SYSTEM ── */
 // sub: {status:'active'|'expired'|'trial', expiresAt: Date, trialDaysLeft: number}
-let subscription={status:'trial', expiresAt: new Date(Date.now()+7*86400000), trialDaysLeft:7};
+let subscription={status:'trial', expiresAt: new Date(Date.now()+3*86400000), trialDaysLeft:3};
+let todasLojas=[]; // cache master
 
-function checkSubscription(){
+async function checkSubscription(){
+  try{
+    const {data:sub}=await db.from('assinaturas').select('*').eq('loja_id',currentLojaId).single();
+    if(sub){
+      const hoje=new Date().toISOString().split('T')[0];
+      const trialFim=sub.trial_fim;
+      const status=sub.status;
+      if(status==='trial'){
+        const diasLeft=Math.ceil((new Date(trialFim)-new Date())/86400000);
+        subscription.trialDaysLeft=Math.max(0,diasLeft);
+        subscription.status=diasLeft<=0?'expired':'trial';
+        subscription.expiresAt=new Date(trialFim);
+      } else if(status==='ativa'){
+        subscription.status='active';
+        subscription.expiresAt=new Date(sub.proxima_cobranca||'2099-01-01');
+      } else {
+        subscription.status='expired';
+      }
+    }
+  }catch(e){}
   const now=new Date();
-  if(subscription.status==='active' && now>subscription.expiresAt){
-    subscription.status='expired';
-  }
-  if(subscription.status==='trial'){
-    const days=Math.ceil((subscription.expiresAt-now)/86400000);
-    subscription.trialDaysLeft=Math.max(0,days);
-    if(days<=0)subscription.status='expired';
-  }
   updateSubStatus();
   if(subscription.status==='expired'){
     el('subWall').style.display='flex';
@@ -1266,7 +1349,7 @@ function renderPrecoHistorico(){
 }
 
 /* ── ALL TABS ── */
-const ALL_TABS=['home','pedidos','compras','despesas','fornecedores','relatorios','historico','precos','loja','usuarios','assinatura'];
+const ALL_TABS=['home','pedidos','compras','despesas','fornecedores','relatorios','historico','precos','loja','usuarios','assinatura','master'];
 function switchTab(tab){
   ALL_TABS.forEach(t=>{const s=el('tab-'+t);if(s)s.style.display=t===tab?'':'none';});
   document.querySelectorAll('[data-tab]').forEach(b=>b.classList.toggle('active',b.dataset.tab===tab));
@@ -1276,6 +1359,7 @@ function switchTab(tab){
   if(tab==='historico')renderHistoricoCompras();
 
   if(tab==='pedidos'){renderPedido();renderHistorico();renderPedidoTabela();updateSalvarLabel();}
+  if(tab==='master'){renderMaster();}
   if(tab==='compras'){renderPendentes();renderNaoComprados();renderCompras();refreshHeadings();}
   if(tab==='loja'){editingLojaId=null;renderLojas();loadLojaForm(currentLojaId);}
   if(tab==='usuarios'){renderUsuarios();populateInvLoja();}
@@ -2402,6 +2486,159 @@ function verificarPendentesOntem(){
 }
 
 /* ── INIT ── */
+/* ══ PAINEL MASTER ══ */
+let asaasKey='', asaasModo='sandbox';
+
+async function renderMaster(){
+  if(!currentUser||!currentUser.isAdmin)return;
+  // Carregar todas as lojas + assinaturas
+  const {data}=await db.from('lojas').select('*, assinaturas(*)').order('id');
+  if(!data){el('masterLista').innerHTML='<div class="empty">Erro ao carregar dados.</div>';return;}
+  todasLojas=data;
+  const busca=(el('masterBusca').value||'').toLowerCase();
+  const filtroStatus=el('masterFiltroStatus').value;
+  const filtradas=data.filter(l=>{
+    const sub=l.assinaturas&&l.assinaturas[0];
+    const status=sub?sub.status:'sem_assinatura';
+    const nomeOk=!busca||l.nome.toLowerCase().includes(busca);
+    const statusOk=!filtroStatus||(filtroStatus==='ativa'?status==='ativa':status===filtroStatus);
+    return nomeOk&&statusOk;
+  });
+  // Totalizadores
+  let ativas=0,trial=0,vencidas=0,mrr=0;
+  data.forEach(l=>{
+    const sub=l.assinaturas&&l.assinaturas[0];
+    if(!sub)return;
+    if(sub.status==='ativa'){ativas++;mrr+=parseFloat(sub.valor_mensal||199);}
+    else if(sub.status==='trial')trial++;
+    else if(sub.status==='vencida')vencidas++;
+  });
+  el('mTotalLojas').textContent=data.length;
+  el('mAtivas').textContent=ativas;
+  el('mTrial').textContent=trial;
+  el('mVencidas').textContent=vencidas;
+  el('mMRR').textContent=fmt(mrr);
+
+  if(!filtradas.length){el('masterLista').innerHTML='<div class="empty">Nenhuma loja encontrada.</div>';return;}
+
+  el('masterLista').innerHTML=filtradas.map(l=>{
+    const sub=l.assinaturas&&l.assinaturas[0];
+    const status=sub?sub.status:'sem_assinatura';
+    const statusLabel={trial:'⏳ Trial',ativa:'✅ Ativa',vencida:'🔴 Vencida',cancelada:'⚫ Cancelada',sem_assinatura:'⚪ Sem assinatura'};
+    const statusCor={trial:'var(--amber)',ativa:'var(--accent)',vencida:'var(--red)',cancelada:'var(--text3)',sem_assinatura:'var(--text3)'};
+    const valor=sub?parseFloat(sub.valor_mensal||199):199;
+    const plano=sub?sub.plano:'mensal';
+    const trialFim=sub?sub.trial_fim:'—';
+    return `<div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:1rem;margin-bottom:.625rem;">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:.5rem;margin-bottom:.75rem;">
+        <div>
+          <div style="font-size:15px;font-weight:700;">${l.nome}</div>
+          <div style="font-size:12px;color:var(--text2);">${l.endereco||'—'} · ID: ${l.id}</div>
+        </div>
+        <span style="font-size:12px;font-weight:700;color:${statusCor[status]||'var(--text2)'};">${statusLabel[status]||status}</span>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(100px,1fr));gap:.5rem;margin-bottom:.75rem;">
+        <div>
+          <label style="font-size:10px;color:var(--text3);text-transform:uppercase;display:block;margin-bottom:2px;">Valor/mês</label>
+          <input type="number" value="${valor}" id="masterVal_${l.id}" style="width:100%;font-size:13px;padding:4px 8px;" min="0" step="1"/>
+        </div>
+        <div>
+          <label style="font-size:10px;color:var(--text3);text-transform:uppercase;display:block;margin-bottom:2px;">Plano</label>
+          <select id="masterPlano_${l.id}" style="width:100%;font-size:13px;padding:4px 8px;">
+            <option value="mensal"${plano==='mensal'?' selected':''}>Mensal</option>
+            <option value="anual"${plano==='anual'?' selected':''}>Anual</option>
+          </select>
+        </div>
+        <div>
+          <label style="font-size:10px;color:var(--text3);text-transform:uppercase;display:block;margin-bottom:2px;">Trial até</label>
+          <input type="date" value="${trialFim}" id="masterTrial_${l.id}" style="width:100%;font-size:13px;padding:4px 8px;"/>
+        </div>
+        <div>
+          <label style="font-size:10px;color:var(--text3);text-transform:uppercase;display:block;margin-bottom:2px;">Status</label>
+          <select id="masterStatus_${l.id}" style="width:100%;font-size:13px;padding:4px 8px;">
+            <option value="trial"${status==='trial'?' selected':''}>Trial</option>
+            <option value="ativa"${status==='ativa'?' selected':''}>Ativa</option>
+            <option value="vencida"${status==='vencida'?' selected':''}>Vencida</option>
+            <option value="cancelada"${status==='cancelada'?' selected':''}>Cancelada</option>
+          </select>
+        </div>
+      </div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;">
+        <button class="btn-primary" onclick="salvarConfigLoja(${l.id})" style="flex:2;font-size:13px;"><i class="ti ti-device-floppy"></i> Salvar</button>
+        <button class="btn-ghost" onclick="gerarCobrancaLoja(${l.id})" style="flex:1;font-size:13px;"><i class="ti ti-receipt"></i> Gerar cobrança</button>
+      </div>
+      ${sub&&sub.asaas_sub_id?'<p style="font-size:11px;color:var(--text3);margin-top:.375rem;">Asaas ID: '+sub.asaas_sub_id+'</p>':''}
+    </div>`;
+  }).join('');
+}
+
+async function salvarConfigLoja(lojaId){
+  const valor=parseFloat(document.getElementById('masterVal_'+lojaId).value)||199;
+  const plano=document.getElementById('masterPlano_'+lojaId).value;
+  const trialFim=document.getElementById('masterTrial_'+lojaId).value;
+  const status=document.getElementById('masterStatus_'+lojaId).value;
+  try{
+    await db.from('assinaturas').upsert({
+      loja_id:lojaId,valor_mensal:valor,plano,trial_fim:trialFim,status,
+      updated_at:new Date().toISOString()
+    },{onConflict:'loja_id'});
+    showToast('Configuração salva!');
+    renderMaster();
+  }catch(e){showToast('Erro ao salvar: '+e.message);}
+}
+
+async function gerarCobrancaLoja(lojaId){
+  if(!asaasKey){showToast('Configure a API Key do Asaas primeiro');return;}
+  const loja=todasLojas.find(l=>l.id===lojaId);
+  if(!loja){showToast('Loja não encontrada');return;}
+  const sub=loja.assinaturas&&loja.assinaturas[0];
+  const valor=sub?parseFloat(sub.valor_mensal||199):199;
+  showToast('Gerando cobrança no Asaas…');
+  // A cobrança real vai ser feita via backend (Supabase Edge Function)
+  // Por enquanto registramos a intenção no banco
+  try{
+    await db.from('cobranças').insert({
+      loja_id:lojaId,
+      assinatura_id:sub?sub.id:null,
+      valor,status:'pendente',
+      vencimento:new Date(Date.now()+3*86400000).toISOString().split('T')[0]
+    });
+    showToast('Cobrança registrada! Integração Asaas em breve.');
+  }catch(e){showToast('Erro: '+e.message);}
+}
+
+async function salvarConfigAsaas(){
+  asaasKey=el('asaasKeyInput').value.trim();
+  asaasModo=el('asaasModoInput').value;
+  if(!asaasKey){showToast('Informe a API Key');return;}
+  try{
+    await db.from('config_sistema').upsert([
+      {chave:'asaas_key',valor:asaasKey,updated_at:new Date().toISOString()},
+      {chave:'asaas_modo',valor:asaasModo,updated_at:new Date().toISOString()}
+    ],{onConflict:'chave'});
+    showToast('Configuração do Asaas salva!');
+  }catch(e){showToast('Erro: '+e.message);}
+}
+
+async function selecionarPlano(plano){
+  el('btnPlanoMensal').className=plano==='mensal'?'btn-primary':'btn-ghost';
+  el('btnPlanoAnual').className=plano==='anual'?'btn-primary':'btn-ghost';
+  el('payLoading').style.display='block';
+  el('payLinkArea').style.display='none';
+  // Buscar valor configurado para essa loja
+  const {data:sub}=await db.from('assinaturas').select('*').eq('loja_id',currentLojaId).single();
+  const valor=sub?(plano==='anual'?parseFloat(sub.valor_mensal||199)*10:parseFloat(sub.valor_mensal||199)):199;
+  // Por agora gera um link placeholder — a integração real com Asaas será via Edge Function
+  setTimeout(()=>{
+    el('payLoading').style.display='none';
+    el('payLinkArea').style.display='block';
+    el('payLink').href='https://asaas.com'; // será substituído pelo link real do Asaas
+    el('payLink').textContent='Pagar R$ '+valor.toFixed(2)+' via Asaas';
+  },1000);
+}
+
+/* ══ FIM MASTER ══ */
+
 /* ── CARREGAR DADOS DO BANCO (Pedidos + Compras) ── */
 async function carregarDadosDaLoja(){
   if(!currentLojaId)return;
