@@ -100,7 +100,7 @@ main{flex:1;overflow-y:auto;padding:1.25rem 1.5rem 2rem;width:100%;}
 .home-loja-name{font-size:22px;font-weight:700;margin-bottom:.25rem;color:#fff;text-shadow:0 1px 4px rgba(0,0,0,.5);}
 .home-meta{font-size:13px;color:rgba(255,255,255,.7);}
 .home-hero-leaf{position:absolute;top:1.25rem;right:1.25rem;z-index:2;opacity:.25;font-size:80px;line-height:1;}
-.home-quick{display:grid;grid-template-columns:repeat(auto-fit,minmax(70px,1fr));gap:.875rem;margin-bottom:1.25rem;}
+.home-quick{display:grid;grid-template-columns:repeat(auto-fit,minmax(70px,1fr));gap:1.25rem;margin-bottom:1.5rem;}
 @media(max-width:380px){.home-quick{grid-template-columns:repeat(2,1fr);}}
 .quick-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:.75rem .5rem;text-align:center;cursor:pointer;transition:border-color .15s,background .15s;}
 .quick-card:hover{border-color:var(--accent-d);background:var(--accent-bg);}
@@ -576,16 +576,16 @@ button{font-family:inherit;font-size:14px;font-weight:600;cursor:pointer;border-
 
         <!-- VIEW: COMPRAS -->
         <div id="forn-compras" style="display:none;">
-          <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:.5rem;align-items:flex-end;">
-            <div style="flex:1;min-width:120px;">
-              <label style="font-size:11px;color:var(--text2);font-weight:600;display:block;margin-bottom:3px;">Categoria</label>
-              <select id="fornCatFiltro" onchange="renderFornecedores()" style="width:100%;">
-                <option value="">Todas</option>
-                <option value="fruta">🍊 Frutas</option>
-                <option value="legume">🥕 Legumes</option>
-                <option value="verdura">🥬 Verduras</option>
-              </select>
+          <div style="margin-bottom:.625rem;">
+            <label style="font-size:11px;color:var(--text2);font-weight:600;display:block;margin-bottom:3px;">Categoria</label>
+            <div id="fornFiltroCatBtns" style="display:flex;gap:6px;flex-wrap:wrap;">
+              <button class="cat-btn active" data-cat="" onclick="selecionarFornFiltroCat('')" style="font-size:14px;">Todas</button>
+              <button class="cat-btn" data-cat="fruta" onclick="selecionarFornFiltroCat('fruta')" style="font-size:14px;">🍊 Frutas</button>
+              <button class="cat-btn" data-cat="legume" onclick="selecionarFornFiltroCat('legume')" style="font-size:14px;">🥕 Legumes</button>
+              <button class="cat-btn" data-cat="verdura" onclick="selecionarFornFiltroCat('verdura')" style="font-size:14px;">🥬 Verduras</button>
             </div>
+          </div>
+          <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:.5rem;align-items:flex-end;">
             <div style="flex:1;min-width:130px;">
               <label style="font-size:11px;color:var(--text2);font-weight:600;display:block;margin-bottom:3px;">De</label>
               <input type="date" id="fornDataDe" onchange="renderFornecedores()" style="width:100%;"/>
@@ -707,6 +707,9 @@ button{font-family:inherit;font-size:14px;font-weight:600;cursor:pointer;border-
             <i class="ti ti-loader-2"></i> Gerando link de pagamento…
           </div>
         </div>
+
+        <div class="sh"><i class="ti ti-building-store"></i> Minhas lojas</div>
+        <div id="assinaturaLojasList"></div>
       </section>
 
       <!-- MASTER (só admin) -->
@@ -1424,7 +1427,7 @@ function switchTab(tab){
   if(tab==='loja'){editingLojaId=null;renderLojas();loadLojaForm(currentLojaId);}
   if(tab==='usuarios'){renderUsuarios();populateInvLoja();}
   if(tab==='fornecedores'){switchFornView(fornViewAtual);}
-  if(tab==='assinatura'){renderAssinatura();atualizarLabelsPreco();}
+  if(tab==='assinatura'){renderAssinatura();atualizarLabelsPreco();renderAssinaturasTodasLojas();}
   if(tab==='home')renderHome();
 }
 
@@ -2081,10 +2084,15 @@ function renderFornecedoresCadastro(){
   });
   el('listaFornCadastro').innerHTML=html||'<div class="empty">Carregando…</div>';
 }
+let fornFiltroCatSelecionada='';
+function selecionarFornFiltroCat(cat){
+  fornFiltroCatSelecionada=cat;
+  document.querySelectorAll('#fornFiltroCatBtns .cat-btn').forEach(b=>b.classList.toggle('active',b.dataset.cat===cat));
+  renderFornecedores();
+}
 function renderFornecedores(){
-  const catFEl=el('fornCatFiltro');
   const deEl=el('fornDataDe');const ateEl=el('fornDataAte');
-  const catF=catFEl?catFEl.value:'';
+  const catF=fornFiltroCatSelecionada;
   const dataDE=deEl?deEl.value:'';
   const dataATE=ateEl?ateEl.value:'';
   let my=compras.filter(c=>c.lojaId===currentLojaId);
@@ -2740,6 +2748,65 @@ async function salvarConfigAsaas(){
     ],{onConflict:'chave'});
     showToast('Configuração do Asaas salva!');
   }catch(e){showToast('Erro: '+e.message);}
+}
+
+/* ── MINHAS LOJAS — ASSINATURAS (todas as lojas do usuário) ── */
+async function renderAssinaturasTodasLojas(){
+  const cont=el('assinaturaLojasList');if(!cont||!currentUser)return;
+  cont.innerHTML='<p style="font-size:13px;color:var(--text3);padding:.5rem 0;">Carregando…</p>';
+  try{
+    const {data,error}=await db.from('loja_membros').select('lojas(id,nome,logo,assinaturas(*))').eq('user_id',currentUser.id);
+    if(error||!data){cont.innerHTML='';return;}
+    const lojasDoUsuario=data.filter(m=>m.lojas).map(m=>m.lojas).sort((a,b)=>a.nome.localeCompare(b.nome,'pt-BR',{sensitivity:'base'}));
+    if(!lojasDoUsuario.length){cont.innerHTML='';return;}
+    cont.innerHTML=lojasDoUsuario.map(l=>{
+      const sub=l.assinaturas&&l.assinaturas[0];
+      const status=sub?sub.status:'sem_assinatura';
+      const label={trial:'⏳ Trial',ativa:'✅ Ativa',vencida:'🔴 Vencida',cancelada:'⚫ Cancelada',sem_assinatura:'⚪ Sem assinatura'}[status]||status;
+      const cor={trial:'var(--amber)',ativa:'var(--accent)',vencida:'var(--red)',cancelada:'var(--text3)',sem_assinatura:'var(--text3)'}[status]||'var(--text2)';
+      const valorMensal=parseFloat(sub&&sub.valor_mensal||250);
+      const precisaPagar=status==='trial'||status==='vencida'||status==='sem_assinatura';
+      const ativa=l.id===currentLojaId;
+      return `<div class="card" style="padding:.875rem 1rem;margin-bottom:.625rem;">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:.5rem;flex-wrap:wrap;margin-bottom:${precisaPagar?'.625rem':'0'};">
+          <div style="display:flex;align-items:center;gap:8px;">
+            <div style="width:30px;height:30px;border-radius:7px;overflow:hidden;background:var(--bg3);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+              ${l.logo?`<img src="${l.logo}" style="width:100%;height:100%;object-fit:cover;">`:'<i class="ti ti-building-store" style="color:var(--text3);font-size:14px;"></i>'}
+            </div>
+            <div>
+              <p style="font-size:13px;font-weight:600;">${l.nome}${ativa?' <span style="color:var(--accent);font-size:11px;">· selecionada</span>':''}</p>
+              <p style="font-size:11px;color:${cor};font-weight:600;">${label}</p>
+            </div>
+          </div>
+        </div>
+        ${precisaPagar?`<div style="display:flex;gap:.5rem;flex-wrap:wrap;">
+          <button class="btn-primary btn-sm" style="flex:1;min-width:130px;" onclick="selecionarPlanoLoja(${l.id},'mensal',this)"><i class="ti ti-calendar-month"></i> Mensal — R$ ${valorMensal.toLocaleString('pt-BR')}/mês</button>
+          <button class="btn-ghost btn-sm" style="flex:1;min-width:130px;" onclick="selecionarPlanoLoja(${l.id},'anual',this)"><i class="ti ti-calendar"></i> Anual — R$ ${(valorMensal*12).toLocaleString('pt-BR')}/ano</button>
+        </div>
+        <div id="payLinkArea-${l.id}" style="display:none;margin-top:.625rem;background:var(--accent-bg);border:1px solid var(--accent-d);border-radius:var(--radius-sm);padding:.75rem;text-align:center;">
+          <p style="font-size:12px;font-weight:600;color:var(--accent);margin-bottom:.375rem;">Link de pagamento gerado!</p>
+          <a id="payLink-${l.id}" href="#" target="_blank" class="btn-primary btn-sm" style="display:inline-block;text-decoration:none;"><i class="ti ti-external-link"></i> Pagar agora</a>
+        </div>`:''}
+      </div>`;
+    }).join('');
+  }catch(e){cont.innerHTML='';}
+}
+
+async function selecionarPlanoLoja(lojaId,plano,btnEl){
+  const textoOriginal=btnEl?btnEl.innerHTML:'';
+  if(btnEl)btnEl.innerHTML='<i class="ti ti-loader-2"></i> Gerando…';
+  let valorMensal=250;
+  try{
+    const {data:sub}=await db.from('assinaturas').select('*').eq('loja_id',lojaId).single();
+    valorMensal=parseFloat(sub&&sub.valor_mensal||250);
+  }catch(e){}
+  const valor=plano==='anual'?valorMensal*12:valorMensal;
+  setTimeout(()=>{
+    const area=el('payLinkArea-'+lojaId);const link=el('payLink-'+lojaId);
+    if(area)area.style.display='block';
+    if(link){link.href='https://asaas.com';link.innerHTML='<i class="ti ti-external-link"></i> Pagar R$ '+valor.toLocaleString('pt-BR')+' via Asaas';}
+    if(btnEl)btnEl.innerHTML=textoOriginal;
+  },900);
 }
 
 async function selecionarPlano(plano){
