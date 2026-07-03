@@ -675,13 +675,14 @@ button{font-family:inherit;font-size:14px;font-weight:600;cursor:pointer;border-
               <p style="font-size:11px;color:var(--text3);margin-top:4px;text-align:center;">Logo</p>
             </div>
             <div style="flex:1;min-width:200px;display:flex;flex-direction:column;gap:.625rem;">
-              <div class="field-group"><label>Nome da loja</label><input id="lojaNome" placeholder="Ex: Hortifruti Central"/></div>
+              <div class="field-group"><label>Nome da loja *</label><input id="lojaNome" placeholder="Ex: Hortifruti Central"/></div>
               <div class="field-group"><label>Endereço</label><input id="lojaEndereco" placeholder="Rua, número, bairro"/></div>
               <div class="field-row" style="margin:0;">
                 <div class="field-group" style="margin:0;"><label>Cidade</label><input id="lojaCidade" placeholder="Cidade"/></div>
-                <div class="field-group" style="margin:0;"><label>CNPJ / CPF</label><input id="lojaCnpj" placeholder="00.000.000/0001-00"/></div>
+                <div class="field-group" style="margin:0;"><label>CNPJ / CPF *</label><input id="lojaCnpj" placeholder="00.000.000/0001-00"/></div>
               </div>
               <div class="field-group"><label>Telefone</label><input id="lojaTel" placeholder="(11) 99999-9999"/></div>
+              <p style="font-size:11px;color:var(--text3);margin:0;">* Nome e CNPJ/CPF são obrigatórios — o CNPJ/CPF é exigido pelo Asaas pra gerar a cobrança da assinatura dessa loja.</p>
             </div>
           </div>
           <div style="display:flex;gap:.5rem;">
@@ -692,6 +693,7 @@ button{font-family:inherit;font-size:14px;font-weight:600;cursor:pointer;border-
         <div class="sh"><i class="ti ti-building-store"></i> Minhas Lojas</div>
         <div id="listaLojas"></div>
         <button class="btn-ghost btn-w" onclick="addNovaLoja()" style="margin-top:.5rem;"><i class="ti ti-plus"></i> Adicionar nova loja</button>
+        <p style="font-size:11px;color:var(--amber);text-align:center;margin-top:.375rem;"><i class="ti ti-alert-triangle" style="font-size:12px;"></i> Cada loja criada gera uma cobrança mensal própria (trial de 3 dias primeiro).</p>
       </section>
 
       <!-- ASSINATURA -->
@@ -2362,10 +2364,14 @@ function loadLojaForm(id){
 async function salvarLoja(){
   const targetId=editingLojaId||currentLojaId;
   const loja=lojas.find(l=>l.id===targetId);if(!loja)return;
-  loja.nome=el('lojaNome').value.trim()||loja.nome;
+  const nomeInput=el('lojaNome').value.trim();
+  const cnpjInput=el('lojaCnpj').value.trim();
+  if(!nomeInput){showToast('Preencha o nome da loja');el('lojaNome').focus();return;}
+  if(!cnpjInput){showToast('Preencha o CNPJ ou CPF da loja — o Asaas exige isso pra gerar a cobrança da assinatura');el('lojaCnpj').focus();return;}
+  loja.nome=nomeInput;
   loja.endereco=el('lojaEndereco').value.trim();
   loja.cidade=el('lojaCidade').value.trim()||loja.cidade;
-  loja.cnpj=el('lojaCnpj').value.trim();
+  loja.cnpj=cnpjInput;
   loja.tel=el('lojaTel').value.trim();
   if(el('logoPreview').style.display!=='none')loja.logo=el('logoPreview').src;
   // Sincroniza com Supabase
@@ -2403,6 +2409,7 @@ async function removeLoja(id){
   showToast('Loja removida da sua lista');
 }
 async function addNovaLoja(){
+  if(!confirm('Criar uma nova loja gera uma cobrança mensal própria pra ela (depois do trial de 3 dias). Quer continuar?'))return;
   const nomeLoja=`Loja ${String(lojas.length+1).padStart(2,'0')}`;
   showToast('Criando loja…');
   try{
