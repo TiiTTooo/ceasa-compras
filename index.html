@@ -62,6 +62,8 @@ header{background:var(--bg2);border-bottom:1px solid var(--border);padding:0 1.2
 .logo-icon img{width:100%;height:100%;object-fit:cover;}
 .logo-name{font-weight:700;font-size:15px;color:var(--text);}
 .header-right{display:flex;align-items:center;gap:8px;justify-self:end;}
+.header-user-info{font-size:10px;color:var(--text3);line-height:1.2;margin-top:1px;}
+@media(min-width:768px){.header-user-info{font-size:12.5px;}}
 .header-date{font-size:12px;color:var(--text2);font-family:'JetBrains Mono',monospace;justify-self:center;white-space:nowrap;}
 @media(max-width:460px){.header-date{display:none;}}
 .loja-badge{background:var(--accent-bg);border:1px solid var(--accent-d);color:var(--accent);padding:4px 10px;border-radius:20px;font-size:12px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:5px;transition:opacity .15s;}
@@ -271,7 +273,7 @@ button{font-family:inherit;font-size:14px;font-weight:600;cursor:pointer;border-
 <div id="loginScreen" style="display:flex;">
   <div class="login-box">
     <div class="login-logo"><div class="ico"><i class="ti ti-leaf"></i></div>CEASA <span>Compras</span></div>
-    <div class="login-tabs">
+    <div class="login-tabs" id="loginTabsBar">
       <button class="login-tab active" onclick="switchLoginTab('login')">Entrar</button>
       <button class="login-tab" onclick="switchLoginTab('register')">Criar conta</button>
     </div>
@@ -279,7 +281,22 @@ button{font-family:inherit;font-size:14px;font-weight:600;cursor:pointer;border-
       <div class="login-field"><label>E-mail</label><input type="email" id="loginEmail" name="email" placeholder="seu@email.com" autocomplete="email" onkeydown="if(event.key==='Enter')document.getElementById('loginPass').focus()"/></div>
       <div class="login-field"><label>Senha</label><input type="password" id="loginPass" name="password" placeholder="••••••••" autocomplete="current-password" onkeydown="if(event.key==='Enter')doLogin()"/></div>
       <button type="submit" class="btn-primary" style="margin-top:.5rem;"><i class="ti ti-login"></i> Entrar</button>
+      <p style="text-align:center;margin-top:.75rem;"><a href="#" onclick="event.preventDefault();switchLoginTab('forgot')" style="font-size:12px;color:var(--text2);">Esqueci minha senha</a></p>
       <p id="loginErro" style="font-size:12px;color:var(--red);text-align:center;margin-top:.625rem;display:none;"></p>
+    </form>
+    <form id="lt-forgot" style="display:none;" onsubmit="event.preventDefault();doForgotPassword()">
+      <p style="font-size:13px;color:var(--text2);margin-bottom:.75rem;">Digite o e-mail da sua conta. Vamos te mandar um link pra criar uma senha nova.</p>
+      <div class="login-field"><label>E-mail</label><input type="email" id="forgotEmail" placeholder="seu@email.com" autocomplete="email" onkeydown="if(event.key==='Enter')doForgotPassword()"/></div>
+      <button type="submit" class="btn-primary" style="margin-top:.5rem;"><i class="ti ti-mail"></i> Enviar link de recuperação</button>
+      <p style="text-align:center;margin-top:.75rem;"><a href="#" onclick="event.preventDefault();switchLoginTab('login')" style="font-size:12px;color:var(--text2);">Voltar pra tela de login</a></p>
+      <p id="forgotMsg" style="font-size:12px;text-align:center;margin-top:.625rem;display:none;"></p>
+    </form>
+    <form id="lt-reset" style="display:none;" onsubmit="event.preventDefault();doResetPassword()">
+      <p style="font-size:13px;color:var(--text2);margin-bottom:.75rem;">Digite a sua nova senha.</p>
+      <div class="login-field"><label>Nova senha</label><input type="password" id="resetPass1" placeholder="•••••••• (mín. 6 caracteres)" autocomplete="new-password"/></div>
+      <div class="login-field"><label>Confirmar nova senha</label><input type="password" id="resetPass2" placeholder="••••••••" autocomplete="new-password" onkeydown="if(event.key==='Enter')doResetPassword()"/></div>
+      <button type="submit" class="btn-primary" style="margin-top:.5rem;"><i class="ti ti-lock"></i> Salvar nova senha</button>
+      <p id="resetErro" style="font-size:12px;color:var(--red);text-align:center;margin-top:.625rem;display:none;"></p>
     </form>
     <form id="lt-register" style="display:none;" onsubmit="event.preventDefault();doRegister()">
       <div class="login-field"><label>Nome</label><input type="text" id="regNome" name="name" placeholder="Nome completo" autocomplete="name" onkeydown="if(event.key==='Enter')document.getElementById('regEmail').focus()"/></div>
@@ -302,7 +319,7 @@ button{font-family:inherit;font-size:14px;font-weight:600;cursor:pointer;border-
         <div class="logo-icon" id="headerLogoIcon"><i class="ti ti-leaf"></i></div>
         <div>
           <span class="logo-name" id="headerLojaName">CEASA Compras</span>
-          <div id="headerUserInfo" style="font-size:10px;color:var(--text3);line-height:1;margin-top:1px;"></div>
+          <div id="headerUserInfo" class="header-user-info"></div>
         </div>
       </div>
     </div>
@@ -1013,6 +1030,12 @@ let editingLojaId=null,editingUserId=null;
 const SUPABASE_URL = 'https://ocexfnvbgaponmvinfbc.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9jZXhmbnZiZ2Fwb25tdmluZmJjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI4MzA5NTMsImV4cCI6MjA5ODQwNjk1M30.ivRZfMYNURGVfxUNIv2OS3DFocUFHQIRXTQep4KtqwM';
 const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+db.auth.onAuthStateChange((event, session) => {
+  if(event === 'PASSWORD_RECOVERY'){
+    el('loginScreen').style.display='flex';el('appShell').style.display='none';
+    switchLoginTab('reset');
+  }
+});
 
 let lojas=[];
 let usuarios=[];
@@ -1072,8 +1095,37 @@ function closeSettings(){el('settingsModal').classList.remove('open');}
 /* ── LOGIN (Supabase Auth real) ── */
 function switchLoginTab(tab){
   document.querySelectorAll('.login-tab').forEach((b,i)=>b.classList.toggle('active',(i===0&&tab==='login')||(i===1&&tab==='register')));
+  el('loginTabsBar').style.display=(tab==='login'||tab==='register')?'':'none';
   el('lt-login').style.display=tab==='login'?'':'none';
   el('lt-register').style.display=tab==='register'?'':'none';
+  el('lt-forgot').style.display=tab==='forgot'?'':'none';
+  el('lt-reset').style.display=tab==='reset'?'':'none';
+}
+async function doForgotPassword(){
+  const email=el('forgotEmail').value.trim();
+  const msgEl=el('forgotMsg');
+  if(!email){msgEl.style.color='var(--red)';msgEl.textContent='Digite seu e-mail.';msgEl.style.display='block';return;}
+  try{
+    const {error}=await db.auth.resetPasswordForEmail(email,{redirectTo:window.location.origin+window.location.pathname});
+    if(error){msgEl.style.color='var(--red)';msgEl.textContent='Erro: '+error.message;msgEl.style.display='block';return;}
+    msgEl.style.color='var(--accent)';
+    msgEl.textContent='Link enviado! Confere sua caixa de entrada (e o spam) e clica no link pra criar uma senha nova.';
+    msgEl.style.display='block';
+  }catch(e){msgEl.style.color='var(--red)';msgEl.textContent='Erro: '+e.message;msgEl.style.display='block';}
+}
+async function doResetPassword(){
+  const p1=el('resetPass1').value;const p2=el('resetPass2').value;
+  el('resetErro').style.display='none';
+  if(p1.length<6){el('resetErro').textContent='A senha precisa ter no mínimo 6 caracteres.';el('resetErro').style.display='block';return;}
+  if(p1!==p2){el('resetErro').textContent='As senhas digitadas são diferentes.';el('resetErro').style.display='block';return;}
+  try{
+    const {error}=await db.auth.updateUser({password:p1});
+    if(error){el('resetErro').textContent='Erro: '+error.message;el('resetErro').style.display='block';return;}
+    showToast('Senha alterada com sucesso!');
+    const {data:{session}}=await db.auth.getSession();
+    if(session)await carregarPerfilEEntrar(session.user.id);
+    else switchLoginTab('login');
+  }catch(e){el('resetErro').textContent='Erro: '+e.message;el('resetErro').style.display='block';}
 }
 function mostrarErroLogin(msg){
   const e=el('loginErro');e.textContent=msg;e.style.display='block';
@@ -1227,6 +1279,9 @@ async function doLogout(){
 }
 
 async function tryAutoLogin(){
+  // Se a URL veio de um link de recuperação de senha, não entra direto no app —
+  // deixa o listener de PASSWORD_RECOVERY mostrar a tela de nova senha.
+  if(window.location.hash.includes('type=recovery')) return false;
   const { data: { session } } = await db.auth.getSession();
   if(!session) return false;
   await carregarPerfilEEntrar(session.user.id);
@@ -1269,6 +1324,10 @@ async function selectLoja(id){
 }
 
 /* ── HEADER ── */
+function capitalizarNome(nome){
+  if(!nome)return'';
+  return nome.trim().split(/\s+/).map(w=>w.charAt(0).toLocaleUpperCase('pt-BR')+w.slice(1).toLocaleLowerCase('pt-BR')).join(' ');
+}
 function refreshHeader(){
   const loja=lojas.find(l=>l.id===currentLojaId)||lojas[0];
   el('headerLojaBadge').textContent=loja.nome;
@@ -1280,7 +1339,7 @@ function refreshHeader(){
   const userInfoEl=el('headerUserInfo');
   if(userInfoEl&&currentUser){
     const papel=currentUser.isAdmin?'Admin master':(currentUser.role==='owner'?'Dono':'Gerente');
-    userInfoEl.textContent=(currentUser.nome||'')+' · '+papel;
+    userInfoEl.textContent=capitalizarNome(currentUser.nome)+' · '+papel;
   }
   renderHome();
 }
