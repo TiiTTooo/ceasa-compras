@@ -300,7 +300,10 @@ button{font-family:inherit;font-size:14px;font-weight:600;cursor:pointer;border-
       <button class="icon-btn" onclick="toggleSidebar()" title="Menu lateral"><i class="ti ti-layout-sidebar"></i></button>
       <div class="logo">
         <div class="logo-icon" id="headerLogoIcon"><i class="ti ti-leaf"></i></div>
-        <span class="logo-name" id="headerLojaName">CEASA Compras</span>
+        <div>
+          <span class="logo-name" id="headerLojaName">CEASA Compras</span>
+          <div id="headerUserInfo" style="font-size:10px;color:var(--text3);line-height:1;margin-top:1px;"></div>
+        </div>
       </div>
     </div>
     <span class="header-date" id="headerDate"></span>
@@ -1274,6 +1277,11 @@ function refreshHeader(){
   else{el('headerLogoIcon').innerHTML=`<i class="ti ti-leaf"></i>`;}
   const d=new Date(currentDate+'T12:00:00');
   el('headerDate').textContent=d.toLocaleDateString('pt-BR',{weekday:'short',day:'2-digit',month:'short'});
+  const userInfoEl=el('headerUserInfo');
+  if(userInfoEl&&currentUser){
+    const papel=currentUser.isAdmin?'Admin master':(currentUser.role==='owner'?'Dono':'Gerente');
+    userInfoEl.textContent=(currentUser.nome||'')+' · '+papel;
+  }
   renderHome();
 }
 
