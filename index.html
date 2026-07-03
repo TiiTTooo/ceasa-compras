@@ -2868,7 +2868,7 @@ async function gerarCobrancaLoja(lojaId){
   const plano=sub?sub.plano:'mensal';
   showToast('Gerando cobrança no Asaas…');
   try{
-    const {data,error}=await db.functions.invoke('criar-assinatura-asaas',{body:{loja_id:lojaId,plano}});
+    const {data,error}=await db.functions.invoke('smart-service',{body:{loja_id:lojaId,plano}});
     if(error||!data||data.error){
       showToast('Erro: '+(data&&data.error?data.error:(error?error.message:'tente novamente')));
       return;
@@ -2939,7 +2939,7 @@ async function selecionarPlanoLoja(lojaId,plano,btnEl){
   const textoOriginal=btnEl?btnEl.innerHTML:'';
   if(btnEl)btnEl.innerHTML='<i class="ti ti-loader-2"></i> Gerando…';
   try{
-    const {data,error}=await db.functions.invoke('criar-assinatura-asaas',{body:{loja_id:lojaId,plano}});
+    const {data,error}=await db.functions.invoke('smart-service',{body:{loja_id:lojaId,plano}});
     if(btnEl)btnEl.innerHTML=textoOriginal;
     if(error||!data||data.error){
       showToast('Erro: '+(data&&data.error?data.error:(error?error.message:'tente novamente')));
@@ -2961,7 +2961,7 @@ async function selecionarPlano(plano){
   el('payLoading').style.display='block';
   el('payLinkArea').style.display='none';
   try{
-    const {data,error}=await db.functions.invoke('criar-assinatura-asaas',{body:{loja_id:currentLojaId,plano}});
+    const {data,error}=await db.functions.invoke('smart-service',{body:{loja_id:currentLojaId,plano}});
     el('payLoading').style.display='none';
     if(error||!data||data.error){
       showToast('Erro ao gerar cobrança: '+(data&&data.error?data.error:(error?error.message:'tente novamente')));
