@@ -100,7 +100,7 @@ main{flex:1;overflow-y:auto;padding:1.25rem 1.5rem 2rem;width:100%;}
 .home-loja-name{font-size:22px;font-weight:700;margin-bottom:.25rem;color:#fff;text-shadow:0 1px 4px rgba(0,0,0,.5);}
 .home-meta{font-size:13px;color:rgba(255,255,255,.7);}
 .home-hero-leaf{position:absolute;top:1.25rem;right:1.25rem;z-index:2;opacity:.25;font-size:80px;line-height:1;}
-.home-quick{display:grid;grid-template-columns:repeat(auto-fit,minmax(70px,1fr));gap:1.25rem;margin-bottom:1.5rem;}
+.home-quick{display:grid;grid-template-columns:repeat(auto-fit,minmax(70px,1fr));gap:1.75rem;margin-bottom:1.75rem;}
 @media(max-width:380px){.home-quick{grid-template-columns:repeat(2,1fr);}}
 .quick-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:.75rem .5rem;text-align:center;cursor:pointer;transition:border-color .15s,background .15s;}
 .quick-card:hover{border-color:var(--accent-d);background:var(--accent-bg);}
@@ -878,9 +878,17 @@ button{font-family:inherit;font-size:14px;font-weight:600;cursor:pointer;border-
           <div class="field-row">
             <input id="invNome" placeholder="Nome"/>
             <input id="invEmail" type="email" placeholder="E-mail"/>
+            <input id="invTelefone" type="tel" placeholder="WhatsApp (opcional) — Ex: 11999998888"/>
             <select id="invLoja"></select>
           </div>
           <button class="btn-primary" onclick="saveUsuario()"><i class="ti ti-send"></i> Enviar convite</button>
+          <div id="conviteEnviarArea" style="display:none;margin-top:.75rem;padding:.75rem;background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius-sm);">
+            <p style="font-size:12px;color:var(--text2);margin-bottom:.5rem;">Convite criado! Manda o link de cadastro pra pessoa:</p>
+            <div style="display:flex;gap:.5rem;flex-wrap:wrap;">
+              <a id="conviteWhatsBtn" class="btn-primary btn-sm" target="_blank" rel="noopener" style="text-decoration:none;display:none;"><i class="ti ti-brand-whatsapp"></i> Enviar por WhatsApp</a>
+              <a id="conviteEmailBtn" class="btn-ghost btn-sm" style="text-decoration:none;"><i class="ti ti-mail"></i> Enviar por e-mail</a>
+            </div>
+          </div>
         </div>
         <div class="sh"><i class="ti ti-users"></i> Equipe</div>
         <div id="listaUsuarios"></div>
@@ -2351,19 +2359,33 @@ function renderLojas(){
 
 /* ── USUÁRIOS (convites de gerente, vinculados a 1 loja) ── */
 function populateInvLoja(){el('invLoja').innerHTML=lojas.map(l=>`<option value="${l.id}">${l.nome}</option>`).join('');}
+const APP_URL='https://ceasa-compras.vercel.app/';
 async function saveUsuario(){
   const nome=el('invNome').value.trim();const email=el('invEmail').value.trim();
+  const telInput=el('invTelefone').value.trim();
   const lojaId=parseInt(el('invLoja').value);
   if(!nome||!email||!lojaId){showToast('Preencha nome, e-mail e loja');return;}
+  const lojaNome=(lojas.find(l=>l.id===lojaId)||{}).nome||'sua loja';
+  let tel=telInput.replace(/\D/g,'');
+  if(tel&&!tel.startsWith('55'))tel='55'+tel;
   try{
-    const {error}=await db.from('convites_usuario').insert({email,loja_id:lojaId,role:'manager',criado_por:currentUser.id});
+    const {error}=await db.from('convites_usuario').insert({email,telefone:telInput||null,loja_id:lojaId,role:'manager',criado_por:currentUser.id});
     if(error){
       showToast(error.code==='23505'?'Já existe um convite pendente pra esse e-mail nessa loja':'Erro: '+error.message);
       return;
     }
-    showToast('Convite criado! Peça pra "'+nome+'" se cadastrar com o e-mail '+email);
   }catch(e){showToast('Erro: '+e.message);return;}
-  el('invNome').value='';el('invEmail').value='';
+
+  const msg=`Oi, ${nome}! Você foi convidado(a) para gerenciar a loja "${lojaNome}" no CEASA Compras. Faça seu cadastro em ${APP_URL} usando o e-mail ${email} — o sistema já vai te reconhecer automaticamente como gerente dessa loja.`;
+  const emailBtn=el('conviteEmailBtn');
+  emailBtn.href='mailto:'+encodeURIComponent(email)+'?subject='+encodeURIComponent('Convite — CEASA Compras')+'&body='+encodeURIComponent(msg);
+  const waBtn=el('conviteWhatsBtn');
+  if(tel){waBtn.href='https://wa.me/'+tel+'?text='+encodeURIComponent(msg);waBtn.style.display='';}
+  else{waBtn.style.display='none';}
+  el('conviteEnviarArea').style.display='block';
+
+  showToast('Convite criado!');
+  el('invNome').value='';el('invEmail').value='';el('invTelefone').value='';
   renderUsuarios();
 }
 async function cancelarConvite(id){
@@ -2398,7 +2420,7 @@ async function renderUsuarios(){
       html+=`<div class="data-card" style="opacity:.8;">
         <div style="flex:1;min-width:0;">
           <p style="font-size:14px;font-weight:600;">${c.email}</p>
-          <p style="font-size:12px;color:var(--amber);">⏳ Convite pendente · ${lojaNome}</p>
+          <p style="font-size:12px;color:var(--amber);">⏳ Convite pendente · ${lojaNome}${c.telefone?' · '+c.telefone:''}</p>
         </div>
         <button class="btn-danger-soft btn-sm" onclick="cancelarConvite(${c.id})" title="Cancelar convite"><i class="ti ti-x"></i></button>
       </div>`;
