@@ -37,7 +37,7 @@
 [data-theme="light"]{--red-bg:#fdecec;--amber-bg:#fdf4e0;--blue-bg:#e4f0fd;--purple-bg:#f0e8fd;--gray-bg:#eef1f4;--accent-bg:#e0f7ea;--accent-txt:#05421f;--accent-d:#1a9850;}
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
 html{font-size:16px;}
-body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;display:flex;flex-direction:column;transition:background .25s,color .25s;}
+body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;min-height:100dvh;display:flex;flex-direction:column;transition:background .25s,color .25s;}
 
 /* ── LOGIN ── */
 #loginScreen{position:fixed;inset:0;background:var(--bg);z-index:999;display:flex;align-items:center;justify-content:center;}
@@ -52,7 +52,7 @@ body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--t
 .login-field label{display:block;font-size:12px;color:var(--text2);margin-bottom:4px;font-weight:500;}
 
 /* ── APP ── */
-#appShell{display:none;flex-direction:column;min-height:100vh;}
+#appShell{display:none;flex-direction:column;min-height:100vh;min-height:100dvh;}
 .app-layout{display:flex;flex:1;overflow:hidden;}
 
 /* ── HEADER ── */
@@ -151,6 +151,7 @@ button{font-family:inherit;font-size:14px;font-weight:600;cursor:pointer;border-
 .seg-tab.active{background:var(--bg2);color:var(--text);border:1px solid var(--border2);}
 .cat-btn{background:var(--bg3);border:1px solid var(--border2);color:var(--text2);padding:7px 14px;font-size:13px;border-radius:var(--radius-sm);flex:1;justify-content:center;}
 .cat-btn.active{background:var(--accent-bg);border-color:var(--accent-d);color:var(--accent);}
+.cat-btn-bar{position:sticky;top:0;z-index:20;background:var(--bg);padding:.625rem 0 .5rem;margin:-0.625rem 0 .25rem;transition:background .25s;}
 
 /* ── ITEM ROWS ── */
 .item-row{border-left:3px solid var(--border2);border-radius:var(--radius-sm);padding:.625rem .875rem;margin-bottom:.5rem;background:var(--bg2);border-top:1px solid var(--border);border-right:1px solid var(--border);border-bottom:1px solid var(--border);transition:background .25s;}
@@ -345,17 +346,17 @@ button{font-family:inherit;font-size:14px;font-weight:600;cursor:pointer;border-
             <div class="home-meta" id="homeMeta">Bem-vindo ao CEASA Compras</div>
           </div>
         </div>
-        <div class="home-quick">
-          <!-- Banner pendentes do dia anterior — aparece apenas se houver -->
-          <div id="banner-pendentes-ontem" style="display:none;background:var(--amber-bg);border:1px solid var(--amber);border-radius:var(--radius-sm);padding:.75rem 1rem;margin-bottom:.75rem;grid-column:1/-1;display:flex;align-items:flex-start;gap:10px;">
-            <i class="ti ti-bell-ringing" style="font-size:22px;color:var(--amber);flex-shrink:0;margin-top:1px;"></i>
-            <div style="flex:1;">
-              <div style="font-size:13px;font-weight:700;color:var(--amber);margin-bottom:2px;">Itens pendentes do dia anterior!</div>
-              <div id="banner-pendentes-texto" style="font-size:12px;color:var(--text2);line-height:1.5;"></div>
-              <button onclick="switchTab('compras')" style="margin-top:.5rem;background:var(--amber);color:#1a1000;border:none;border-radius:6px;padding:4px 12px;font-size:12px;font-weight:700;cursor:pointer;">Ver pendentes →</button>
-            </div>
-            <button onclick="el('banner-pendentes-ontem').style.display='none'" style="background:none;border:none;color:var(--amber);font-size:18px;padding:0;cursor:pointer;flex-shrink:0;"><i class="ti ti-x"></i></button>
+        <!-- Banner pendentes do dia anterior — aparece apenas se houver -->
+        <div id="banner-pendentes-ontem" style="display:none;background:var(--amber-bg);border:1px solid var(--amber);border-radius:var(--radius-sm);padding:.75rem 1rem;margin-bottom:1rem;align-items:flex-start;gap:10px;">
+          <i class="ti ti-bell-ringing" style="font-size:22px;color:var(--amber);flex-shrink:0;margin-top:1px;"></i>
+          <div style="flex:1;">
+            <div style="font-size:13px;font-weight:700;color:var(--amber);margin-bottom:2px;">Itens pendentes do dia anterior!</div>
+            <div id="banner-pendentes-texto" style="font-size:12px;color:var(--text2);line-height:1.5;"></div>
+            <button onclick="switchTab('compras')" style="margin-top:.5rem;background:var(--amber);color:#1a1000;border:none;border-radius:6px;padding:4px 12px;font-size:12px;font-weight:700;cursor:pointer;">Ver pendentes →</button>
           </div>
+          <button onclick="el('banner-pendentes-ontem').style.display='none'" style="background:none;border:none;color:var(--amber);font-size:18px;padding:0;cursor:pointer;flex-shrink:0;"><i class="ti ti-x"></i></button>
+        </div>
+        <div class="home-quick">
           <div class="quick-card" onclick="switchTab('pedidos')"><i class="ti ti-clipboard-list"></i><span>Pedidos</span></div>
           <div class="quick-card" onclick="switchTab('compras')"><i class="ti ti-map-pin"></i><span>CEASA</span></div>
           <div class="quick-card" onclick="switchTab('despesas')"><i class="ti ti-receipt"></i><span>Despesas</span></div>
@@ -405,7 +406,7 @@ button{font-family:inherit;font-size:14px;font-weight:600;cursor:pointer;border-
           <div id="listaPedido"></div>
         </div>
         <div id="view-tabela" style="display:none;">
-          <div style="display:flex;gap:6px;margin-bottom:.625rem;align-items:center;flex-wrap:wrap;">
+          <div class="cat-btn-bar" style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
             <button class="cat-btn active" data-cat="fruta" onclick="switchCatTabela('fruta')" style="font-size:16px;">🍊 Frutas</button>
             <button class="cat-btn" data-cat="legume" onclick="switchCatTabela('legume')" style="font-size:16px;">🥕 Legumes</button>
             <button class="cat-btn" data-cat="verdura" onclick="switchCatTabela('verdura')" style="font-size:16px;">🥬 Verduras</button>
@@ -452,7 +453,7 @@ button{font-family:inherit;font-size:14px;font-weight:600;cursor:pointer;border-
 
         <!-- VIEW: POR CATEGORIA -->
         <div id="ceasa-view-categoria">
-          <div style="display:flex;gap:6px;margin-bottom:.875rem;flex-wrap:wrap;" id="ceasaCatBtns">
+          <div class="cat-btn-bar" style="display:flex;gap:6px;flex-wrap:wrap;" id="ceasaCatBtns">
             <button class="cat-btn active" data-cat="fruta" onclick="switchCeasaCat('fruta')" style="flex:1;min-width:90px;font-size:15px;">🍊 Frutas <span id="catCount-fruta" style="font-size:11px;opacity:.7;"></span></button>
             <button class="cat-btn" data-cat="legume" onclick="switchCeasaCat('legume')" style="flex:1;min-width:90px;font-size:15px;">🥕 Legumes <span id="catCount-legume" style="font-size:11px;opacity:.7;"></span></button>
             <button class="cat-btn" data-cat="verdura" onclick="switchCeasaCat('verdura')" style="flex:1;min-width:90px;font-size:15px;">🥬 Verduras <span id="catCount-verdura" style="font-size:11px;opacity:.7;"></span></button>
@@ -528,7 +529,7 @@ button{font-family:inherit;font-size:14px;font-weight:600;cursor:pointer;border-
           <button id="dFiltroCustom" class="btn-ghost btn-sm desp-filtro" onclick="despSetFiltro('custom')">Período</button>
         </div>
         <!-- Range customizado (oculto por padrão) -->
-        <div id="despCustomRange" style="display:none;display:flex;gap:8px;flex-wrap:wrap;margin-bottom:.75rem;">
+        <div id="despCustomRange" style="display:none;gap:8px;flex-wrap:wrap;margin-bottom:.75rem;">
           <input type="date" id="despDe" onchange="renderDespesas()" style="flex:1;min-width:140px;"/>
           <input type="date" id="despAte" onchange="renderDespesas()" style="flex:1;min-width:140px;"/>
         </div>
@@ -619,8 +620,8 @@ button{font-family:inherit;font-size:14px;font-weight:600;cursor:pointer;border-
         </div>
         <!-- Tabela semanal por categoria -->
         <div class="sh">Comparativo por semana e categoria</div>
-        <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;margin-bottom:.875rem;">
-          <table style="width:100%;border-collapse:collapse;">
+        <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);overflow-x:auto;-webkit-overflow-scrolling:touch;margin-bottom:.875rem;">
+          <table style="width:100%;min-width:520px;border-collapse:collapse;">
             <thead>
               <tr style="border-bottom:1px solid var(--border2);">
                 <th style="text-align:left;padding:9px 14px;font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;">Categoria</th>
@@ -778,8 +779,8 @@ button{font-family:inherit;font-size:14px;font-weight:600;cursor:pointer;border-
           <div class="stat"><div class="stat-label">Fornecedores</div><div class="stat-value" id="histTotForn">0</div></div>
           <div class="stat" style="border-color:var(--accent-d);"><div class="stat-label" style="color:var(--accent);">Itens únicos</div><div class="stat-value" style="color:var(--accent);" id="histTotItens">0</div></div>
         </div>
-        <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;">
-          <table style="width:100%;border-collapse:collapse;" id="histTable">
+        <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);overflow-x:auto;-webkit-overflow-scrolling:touch;">
+          <table style="width:100%;min-width:560px;border-collapse:collapse;" id="histTable">
             <thead>
               <tr style="border-bottom:1px solid var(--border2);">
                 <th style="text-align:left;padding:8px 12px;font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;">Produto</th>
