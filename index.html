@@ -2861,6 +2861,17 @@ async function salvarConfigLoja(lojaId){
   }catch(e){showToast('Erro ao salvar: '+e.message);}
 }
 
+async function mensagemErroFuncao(error){
+  if(!error)return'Erro desconhecido';
+  try{
+    if(error.context&&typeof error.context.json==='function'){
+      const body=await error.context.clone().json();
+      if(body&&body.error)return body.error;
+    }
+  }catch(e){}
+  return error.message||'Erro desconhecido';
+}
+
 async function gerarCobrancaLoja(lojaId){
   const loja=todasLojas.find(l=>l.id===lojaId);
   if(!loja){showToast('Loja não encontrada');return;}
@@ -2870,7 +2881,8 @@ async function gerarCobrancaLoja(lojaId){
   try{
     const {data,error}=await db.functions.invoke('smart-service',{body:{loja_id:lojaId,plano}});
     if(error||!data||data.error){
-      showToast('Erro: '+(data&&data.error?data.error:(error?error.message:'tente novamente')));
+      const msg=data&&data.error?data.error:await mensagemErroFuncao(error);
+      showToast('Erro: '+msg);
       return;
     }
     if(!data.link){showToast('Assinatura criada, mas o link ainda não ficou pronto. Tenta de novo em alguns segundos.');return;}
@@ -2942,7 +2954,8 @@ async function selecionarPlanoLoja(lojaId,plano,btnEl){
     const {data,error}=await db.functions.invoke('smart-service',{body:{loja_id:lojaId,plano}});
     if(btnEl)btnEl.innerHTML=textoOriginal;
     if(error||!data||data.error){
-      showToast('Erro: '+(data&&data.error?data.error:(error?error.message:'tente novamente')));
+      const msg=data&&data.error?data.error:await mensagemErroFuncao(error);
+      showToast('Erro: '+msg);
       return;
     }
     if(!data.link){showToast('Assinatura criada, mas o link ainda não ficou pronto. Tenta de novo em alguns segundos.');return;}
@@ -2964,7 +2977,8 @@ async function selecionarPlano(plano){
     const {data,error}=await db.functions.invoke('smart-service',{body:{loja_id:currentLojaId,plano}});
     el('payLoading').style.display='none';
     if(error||!data||data.error){
-      showToast('Erro ao gerar cobrança: '+(data&&data.error?data.error:(error?error.message:'tente novamente')));
+      const msg=data&&data.error?data.error:await mensagemErroFuncao(error);
+      showToast('Erro ao gerar cobrança: '+msg);
       return;
     }
     if(!data.link){
