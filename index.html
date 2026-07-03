@@ -1099,7 +1099,7 @@ async function verificarConviteRegistro(){
   const msgEl=el('regConviteMsg');const lojaField=el('regLojaField');
   if(!email){conviteDetectado=null;lojaField.style.display='';msgEl.style.display='none';return;}
   try{
-    const {data}=await db.from('convites_usuario').select('*, lojas(nome)').eq('email',email).eq('usado',false).order('created_at',{ascending:false}).limit(1).maybeSingle();
+    const {data}=await db.from('convites_usuario').select('*, lojas(nome)').ilike('email',email).eq('usado',false).order('created_at',{ascending:false}).limit(1).maybeSingle();
     if(data){
       conviteDetectado=data;
       lojaField.style.display='none';
@@ -1113,7 +1113,7 @@ async function verificarConviteRegistro(){
 
 async function doRegister(){
   const nome=el('regNome').value.trim();
-  const email=el('regEmail').value.trim();
+  const email=el('regEmail').value.trim().toLowerCase();
   const senha=el('regPass').value;
   const lojaNome=el('regLoja').value.trim();
   el('regErro').style.display='none';
@@ -1138,7 +1138,11 @@ async function doRegister(){
   if(temConvite){
     lojaIdFinal=conviteDetectado.loja_id;
     roleFinal=conviteDetectado.role||'manager';
-    try{await db.from('convites_usuario').update({usado:true}).eq('id',conviteDetectado.id);}catch(e){}
+    const {error:conviteErr}=await db.from('convites_usuario').update({usado:true}).eq('id',conviteDetectado.id);
+    if(conviteErr){
+      mostrarErroRegistro('Erro ao confirmar o convite: '+conviteErr.message+'. Sua conta de login foi criada, mas o perfil não — fale com quem te convidou.');
+      return;
+    }
   } else {
     const { data: lojaData, error: lojaError } = await db.from('lojas').insert({ nome: lojaNome }).select().single();
     if(lojaError){ mostrarErroRegistro('Erro ao criar loja: '+lojaError.message); return; }
@@ -1182,14 +1186,18 @@ async function carregarPerfilEEntrar(userId){
 async function enterApp(){
   el('loginScreen').style.display='none';
   el('appShell').style.display='flex';el('appShell').style.flexDirection='column';
-  if(currentUser.role==='manager'&&currentUser.lojaId){currentLojaId=currentUser.lojaId;el('sideUsuarios').style.display='none';el('sideAssinatura').style.display='none';el('sideLoja').style.display='none';}
+  if(currentUser.role==='manager'&&currentUser.lojaId){currentLojaId=currentUser.lojaId;}
+  const ehGerente=currentUser.role==='manager';
+  el('sideUsuarios').style.display=ehGerente?'none':'';
+  el('sideAssinatura').style.display=ehGerente?'none':'';
+  el('sideLoja').style.display=ehGerente?'none':'';
   await carregarMinhasLojas();
   refreshHeader();
   await carregarDadosDaLoja();
   init();
   // Mostrar aba master só para admin
   const masterBtn=el('sideMaster');
-  if(masterBtn&&currentUser&&currentUser.isAdmin)masterBtn.style.display='';
+  if(masterBtn)masterBtn.style.display=(currentUser&&currentUser.isAdmin)?'':'none';
   setTimeout(checkSubscription,300);
 }
 
@@ -1795,22 +1803,22 @@ function renderPendentesCat(){
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:.4rem;margin-bottom:.4rem;">
           <div>
             <label style="font-size:10px;color:var(--text3);font-weight:600;text-transform:uppercase;letter-spacing:.04em;display:block;margin-bottom:2px;">Qtd comprada</label>
-            <input type="number" step="1" min="0" value="${p.qtd}" id="pf-qtd-${p.id}" oninput="this.value=Math.round(+this.value)||''" style="width:100%;font-size:13px;padding:5px 8px;"/>
+            <input type="number" step="1" min="0" value="${p.qtd}" id="pf-qtd-cat-${p.id}" oninput="this.value=Math.round(+this.value)||''" style="width:100%;font-size:13px;padding:5px 8px;"/>
           </div>
           <div>
             <label style="font-size:10px;color:var(--text3);font-weight:600;text-transform:uppercase;letter-spacing:.04em;display:block;margin-bottom:2px;">Valor cx / un</label>
-            <input type="number" step="0.01" min="0" placeholder="R$ 0,00" id="pf-val-${p.id}" style="width:100%;font-size:13px;padding:5px 8px;"/>
+            <input type="number" step="0.01" min="0" placeholder="R$ 0,00" id="pf-val-cat-${p.id}" style="width:100%;font-size:13px;padding:5px 8px;"/>
           </div>
         </div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:.4rem;margin-bottom:.5rem;">
           <div>
             <label style="font-size:10px;color:var(--text3);font-weight:600;text-transform:uppercase;letter-spacing:.04em;display:block;margin-bottom:2px;">Fornecedor</label>
-            <input placeholder="Fornecedor" list="pfForn2-${p.id}" id="pf-forn-${p.id}" style="width:100%;font-size:13px;padding:5px 8px;"/>
+            <input placeholder="Fornecedor" list="pfForn2-${p.id}" id="pf-forn-cat-${p.id}" style="width:100%;font-size:13px;padding:5px 8px;"/>
             <datalist id="pfForn2-${p.id}">${getAllFornByCat(p.categoria).map(f=>`<option value="${f}">`).join('')}</datalist>
           </div>
           <div>
             <label style="font-size:10px;color:var(--text3);font-weight:600;text-transform:uppercase;letter-spacing:.04em;display:block;margin-bottom:2px;">Pagamento</label>
-            <select id="pf-pag-${p.id}" style="width:100%;font-size:13px;padding:5px 8px;">
+            <select id="pf-pag-cat-${p.id}" style="width:100%;font-size:13px;padding:5px 8px;">
               <option value="PG">💵 Dinheiro</option>
               <option value="PGT">📲 Transferência/Pix</option>
               <option value="F">📒 Fiado</option>
@@ -1896,13 +1904,14 @@ function marcarNaoComprado(id){const p=itensPedido.find(i=>i.id===id);if(!p)retu
 function reabrirPendente(id){const p=itensPedido.find(i=>i.id===id);if(!p)return;p.status='pendente';renderPendentes();renderNaoComprados();renderPedido();}
 function confirmPendente(id){
   const p=itensPedido.find(i=>i.id===id);if(!p)return;
-  const qtd=parseFloat(el('pf-qtd-'+id).value)||p.qtd;
-  const val=parseFloat(el('pf-val-'+id).value)||0;if(val<=0){showToast('Informe o valor antes de confirmar');return;}
-  const forn=el('pf-forn-'+id).value.trim()||'Sem fornecedor';
+  const suf=ceasaViewAtual==='categoria'?'-cat-':'-';
+  const qtd=parseFloat(el('pf-qtd'+suf+id).value)||p.qtd;
+  const val=parseFloat(el('pf-val'+suf+id).value)||0;if(val<=0){showToast('Informe o valor antes de confirmar');return;}
+  const forn=el('pf-forn'+suf+id).value.trim()||'Sem fornecedor';
   p.status='comprado';
   syncPedidoUpdate(p);
   const custoUn=(p.unidPorCaixa&&p.tipo==='caixa')?val/p.unidPorCaixa:val;
-  const novaCompra={id:nextCompraId++,produto:p.produto,categoria:p.categoria,qtd,valorUnit:val,custoUnitario:custoUn,tipo:p.tipo||'caixa',unidPorCaixa:p.unidPorCaixa||null,fornecedor:forn,pagamento:el('pf-pag-'+id).value,planejado:true,lojaId:currentLojaId,data:currentDate};
+  const novaCompra={id:nextCompraId++,produto:p.produto,categoria:p.categoria,qtd,valorUnit:val,custoUnitario:custoUn,tipo:p.tipo||'caixa',unidPorCaixa:p.unidPorCaixa||null,fornecedor:forn,pagamento:el('pf-pag'+suf+id).value,planejado:true,lojaId:currentLojaId,data:currentDate};
   compras.push(novaCompra);
   syncCompraInsert(novaCompra, p.id);
   priceHistory.push({produto:p.produto,categoria:p.categoria,data:currentDate,valor:val,custoUnitario:custoUn,unidPorCaixa:p.unidPorCaixa||null,tipo:p.tipo||'caixa',fornecedor:forn,lojaId:currentLojaId});
