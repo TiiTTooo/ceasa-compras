@@ -322,7 +322,13 @@ button{font-family:inherit;font-size:14px;font-weight:600;cursor:pointer;border-
     <form id="lt-register" style="display:none;" onsubmit="event.preventDefault();doRegister()">
       <div class="login-field"><label>Nome</label><input type="text" id="regNome" name="name" placeholder="Nome completo" autocomplete="name" onkeydown="if(event.key==='Enter')document.getElementById('regEmail').focus()"/></div>
       <div class="login-field"><label>E-mail</label><input type="email" id="regEmail" name="email" placeholder="seu@email.com" autocomplete="email" onblur="verificarConviteRegistro()" onkeydown="if(event.key==='Enter')document.getElementById('regLoja').focus()"/></div>
-      <div class="login-field" id="regLojaField"><label>Nome da loja</label><input type="text" id="regLoja" name="organization" placeholder="Ex: Loja 01 — Centro" autocomplete="organization" onkeydown="if(event.key==='Enter')document.getElementById('regPass').focus()"/></div>
+      <div id="regLojaField">
+        <div class="login-field"><label>Nome da loja</label><input type="text" id="regLoja" name="organization" placeholder="Ex: Loja 01 — Centro" autocomplete="organization" onkeydown="if(event.key==='Enter')document.getElementById('regTelefone').focus()"/></div>
+        <div class="login-field"><label>WhatsApp / Telefone</label><input type="tel" id="regTelefone" placeholder="(11) 99999-9999" autocomplete="tel" onkeydown="if(event.key==='Enter')document.getElementById('regCnpj').focus()"/></div>
+        <div class="login-field"><label>CNPJ / CPF</label><input type="text" id="regCnpj" placeholder="00.000.000/0001-00" onkeydown="if(event.key==='Enter')document.getElementById('regEndereco').focus()"/></div>
+        <div class="login-field"><label>Endereço</label><input type="text" id="regEndereco" placeholder="Rua, número, bairro" autocomplete="street-address" onkeydown="if(event.key==='Enter')document.getElementById('regCidade').focus()"/></div>
+        <div class="login-field"><label>Cidade</label><input type="text" id="regCidade" placeholder="Cidade" autocomplete="address-level2" onkeydown="if(event.key==='Enter')document.getElementById('regPass').focus()"/></div>
+      </div>
       <p id="regConviteMsg" style="display:none;font-size:12px;color:var(--accent);background:var(--accent-bg);border:1px solid var(--accent-d);border-radius:var(--radius-sm);padding:.5rem .625rem;margin-bottom:.75rem;"></p>
       <div class="login-field"><label>Senha</label><input type="password" id="regPass" name="password" placeholder="•••••••• (mín. 6 caracteres)" autocomplete="new-password" onkeydown="if(event.key==='Enter')doRegister()"/></div>
       <button type="submit" class="btn-primary" style="margin-top:.5rem;"><i class="ti ti-user-plus"></i> Criar conta</button>
@@ -361,7 +367,7 @@ button{font-family:inherit;font-size:14px;font-weight:600;cursor:pointer;border-
     <div id="sidebar">
       <div class="side-btn active" data-tab="home"        onclick="switchTab('home')"><i class="ti ti-home"></i> Início</div>
       <div class="side-btn" data-tab="pedidos"      onclick="switchTab('pedidos')"><i class="ti ti-clipboard-list"></i> Pedidos</div>
-      <div class="side-btn" data-tab="compras"      onclick="switchTab('compras')"><i class="ti ti-map-pin"></i> Comprar no CEASA</div>
+      <div class="side-btn" data-tab="compras"      onclick="switchTab('compras')"><i class="ti ti-map-pin"></i> Compras</div>
       <div class="side-btn" data-tab="despesas"     onclick="switchTab('despesas')"><i class="ti ti-receipt"></i> Despesas</div>
       <div class="side-btn" data-tab="fornecedores" onclick="switchTab('fornecedores')"><i class="ti ti-truck"></i> Fornecedores</div>
       <div class="side-btn" data-tab="relatorios"   onclick="switchTab('relatorios')"><i class="ti ti-chart-bar"></i> Relatórios</div>
@@ -400,7 +406,7 @@ button{font-family:inherit;font-size:14px;font-weight:600;cursor:pointer;border-
         </div>
         <div class="home-quick">
           <div class="quick-card" onclick="switchTab('pedidos')"><i class="ti ti-clipboard-list"></i><span>Pedidos</span></div>
-          <div class="quick-card" onclick="switchTab('compras')"><i class="ti ti-map-pin"></i><span>CEASA</span></div>
+          <div class="quick-card" onclick="switchTab('compras')"><i class="ti ti-map-pin"></i><span>Compras</span></div>
           <div class="quick-card" onclick="switchTab('despesas')"><i class="ti ti-receipt"></i><span>Despesas</span></div>
           <div class="quick-card" onclick="switchTab('fornecedores')"><i class="ti ti-truck"></i><span>Fornecedores</span></div>
           <div class="quick-card" onclick="switchTab('relatorios')"><i class="ti ti-chart-bar"></i><span>Relatórios</span></div>
@@ -467,12 +473,12 @@ button{font-family:inherit;font-size:14px;font-weight:600;cursor:pointer;border-
         <!-- Botão atalho para ir a Compras -->
         <div style="margin-top:1.25rem;">
           <button class="btn-ghost btn-w" onclick="switchTab('compras')" style="gap:8px;">
-            <i class="ti ti-map-pin"></i> Ir para Comprar no CEASA
+            <i class="ti ti-map-pin"></i> Ir para Compras
           </button>
         </div>
       </section>
 
-      <!-- COMPRAS NO CEASA -->
+      <!-- COMPRAS -->
       <section id="tab-compras" style="display:none;">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.75rem;gap:8px;flex-wrap:wrap;">
           <p id="comprarHeading" style="font-size:16px;font-weight:700;margin:0;"></p>
@@ -481,7 +487,7 @@ button{font-family:inherit;font-size:14px;font-weight:600;cursor:pointer;border-
           </button>
         </div>
 
-        <!-- Sub-abas da aba CEASA -->
+        <!-- Sub-abas da aba Compras -->
         <div class="seg-tabs" style="margin-bottom:1rem;">
           <button class="seg-tab active" id="ceasaSubCat" onclick="switchCeasaView('categoria')"><i class="ti ti-category"></i> Por categoria</button>
           <button class="seg-tab" id="ceasaSubItem" onclick="switchCeasaView('item')"><i class="ti ti-list"></i> Item por item</button>
@@ -948,7 +954,7 @@ button{font-family:inherit;font-size:14px;font-weight:600;cursor:pointer;border-
   <nav id="bottomNav">
     <button class="nav-btn active" data-tab="home"        onclick="switchTab('home')"><i class="ti ti-home"></i><span>Início</span></button>
     <button class="nav-btn"        data-tab="pedidos"     onclick="switchTab('pedidos')"><i class="ti ti-clipboard-list"></i><span>Pedidos</span></button>
-    <button class="nav-btn"        data-tab="compras"     onclick="switchTab('compras')"><i class="ti ti-map-pin"></i><span>CEASA</span></button>
+    <button class="nav-btn"        data-tab="compras"     onclick="switchTab('compras')"><i class="ti ti-map-pin"></i><span>Compras</span></button>
     <button class="nav-btn"        data-tab="despesas"    onclick="switchTab('despesas')"><i class="ti ti-receipt"></i><span>Despesas</span></button>
     <button class="nav-btn"        data-tab="fornecedores" onclick="switchTab('fornecedores')"><i class="ti ti-truck"></i><span>Fornec.</span></button>
     <button class="nav-btn"        data-tab="relatorios"  onclick="switchTab('relatorios')"><i class="ti ti-chart-bar"></i><span>Relatórios</span></button>
@@ -1198,13 +1204,17 @@ async function doRegister(){
   const email=el('regEmail').value.trim().toLowerCase();
   const senha=el('regPass').value;
   const lojaNome=el('regLoja').value.trim();
+  const telefone=el('regTelefone').value.trim();
+  const cnpj=el('regCnpj').value.trim();
+  const endereco=el('regEndereco').value.trim();
+  const cidade=el('regCidade').value.trim();
   el('regErro').style.display='none';
 
   await verificarConviteRegistro();
   const temConvite=!!conviteDetectado;
 
-  if(!nome||!email||senha.length<6||(!temConvite&&!lojaNome)){
-    mostrarErroRegistro('Preencha todos os campos (senha mínimo 6 caracteres).');
+  if(!nome||!email||senha.length<6||(!temConvite&&(!lojaNome||!telefone||!cnpj||!endereco||!cidade))){
+    mostrarErroRegistro(temConvite?'Preencha todos os campos (senha mínimo 6 caracteres).':'Preencha todos os campos, incluindo telefone, CNPJ/CPF, endereço e cidade da loja (senha mínimo 6 caracteres).');
     return;
   }
 
@@ -1226,7 +1236,9 @@ async function doRegister(){
       return;
     }
   } else {
-    const { data: lojaData, error: lojaError } = await db.from('lojas').insert({ nome: lojaNome }).select().single();
+    const { data: lojaData, error: lojaError } = await db.from('lojas').insert({
+      nome: lojaNome, tel: telefone, cnpj: cnpj, endereco: endereco, cidade: cidade
+    }).select().single();
     if(lojaError){ mostrarErroRegistro('Erro ao criar loja: '+lojaError.message); return; }
     lojaIdFinal=lojaData.id;
     roleFinal='owner';
@@ -1263,7 +1275,7 @@ async function carregarPerfilEEntrar(userId){
   if(perfil.lojas){
     // garante que a loja do usuário está na lista local
     const idx = lojas.findIndex(l=>l.id===perfil.lojas.id);
-    const lojaObj = {id:perfil.lojas.id,nome:perfil.lojas.nome,cidade:'',logo:'',cnpj:'',tel:'',endereco:perfil.lojas.endereco||''};
+    const lojaObj = {id:perfil.lojas.id,nome:perfil.lojas.nome,cidade:perfil.lojas.cidade||'',logo:perfil.lojas.logo||'',cnpj:perfil.lojas.cnpj||'',tel:perfil.lojas.tel||'',endereco:perfil.lojas.endereco||''};
     if(idx===-1) lojas.push(lojaObj); else lojas[idx]=lojaObj;
   }
   currentLojaId = perfil.loja_id;
@@ -1877,7 +1889,7 @@ function onEditTipoChange(id){
 
 /* ── COMPRAR ── */
 function toggleForm(id,pfx){el(pfx+id).classList.toggle('open');}
-/* ── CEASA SUB-ABAS ── */
+/* ── COMPRAS SUB-ABAS ── */
 let ceasaViewAtual='categoria';
 function switchCeasaView(view){
   ceasaViewAtual=view;
@@ -2450,7 +2462,7 @@ async function salvarLoja(){
     }).eq('id', targetId);
   }catch(e){ /* silencioso — dados já atualizados localmente */ }
   editingLojaId=null;el('btnCancelLoja').style.display='none';el('lojaFormTitle').textContent='Cadastro da Loja';
-  refreshHeader();renderLojas();loadLojaForm(currentLojaId);showToast('Loja salva!');
+  refreshHeader();renderLojas();loadLojaForm(targetId);showToast('Loja salva!');
 }
 function editLoja(id){
   editingLojaId=id;loadLojaForm(id);
