@@ -40,8 +40,9 @@ html{font-size:16px;}
 body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;min-height:100dvh;display:flex;flex-direction:column;transition:background .25s,color .25s;}
 
 /* ── LOGIN ── */
-#loginScreen{position:fixed;inset:0;background:var(--bg);z-index:999;display:flex;align-items:center;justify-content:center;}
-.login-box{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:2rem 1.75rem;width:100%;max-width:380px;box-shadow:var(--shadow);}
+#loginScreen{position:fixed;inset:0;background:var(--bg);z-index:999;display:flex;align-items:flex-start;justify-content:center;overflow-y:auto;padding:2.5rem 1rem;}
+.login-box{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:2rem 1.75rem;width:100%;max-width:380px;box-shadow:var(--shadow);margin:auto;}
+@media(min-width:560px){.login-box{max-width:460px;}}
 .login-logo{display:flex;align-items:center;gap:10px;font-size:20px;font-weight:700;margin-bottom:1.5rem;}
 .login-logo .ico{width:36px;height:36px;background:var(--accent);border-radius:8px;display:flex;align-items:center;justify-content:center;color:var(--accent-txt);font-size:20px;}
 .login-logo span{color:var(--accent);}
@@ -324,8 +325,10 @@ button{font-family:inherit;font-size:14px;font-weight:600;cursor:pointer;border-
       <div class="login-field"><label>E-mail</label><input type="email" id="regEmail" name="email" placeholder="seu@email.com" autocomplete="email" onblur="verificarConviteRegistro()" onkeydown="if(event.key==='Enter')document.getElementById('regLoja').focus()"/></div>
       <div id="regLojaField">
         <div class="login-field"><label>Nome da loja</label><input type="text" id="regLoja" name="organization" placeholder="Ex: Loja 01 — Centro" autocomplete="organization" onkeydown="if(event.key==='Enter')document.getElementById('regTelefone').focus()"/></div>
-        <div class="login-field"><label>WhatsApp / Telefone</label><input type="tel" id="regTelefone" placeholder="(11) 99999-9999" autocomplete="tel" onkeydown="if(event.key==='Enter')document.getElementById('regCnpj').focus()"/></div>
-        <div class="login-field"><label>CNPJ / CPF</label><input type="text" id="regCnpj" placeholder="00.000.000/0001-00" onkeydown="if(event.key==='Enter')document.getElementById('regEndereco').focus()"/></div>
+        <div class="field-row">
+          <div class="login-field" style="margin-bottom:0;"><label>WhatsApp / Telefone</label><input type="tel" id="regTelefone" placeholder="(11) 99999-9999" autocomplete="tel" onkeydown="if(event.key==='Enter')document.getElementById('regCnpj').focus()"/></div>
+          <div class="login-field" style="margin-bottom:0;"><label>CNPJ / CPF</label><input type="text" id="regCnpj" placeholder="00.000.000/0001-00" onkeydown="if(event.key==='Enter')document.getElementById('regEndereco').focus()"/></div>
+        </div>
         <div class="login-field"><label>Endereço</label><input type="text" id="regEndereco" placeholder="Rua, número, bairro" autocomplete="street-address" onkeydown="if(event.key==='Enter')document.getElementById('regCidade').focus()"/></div>
         <div class="login-field"><label>Cidade</label><input type="text" id="regCidade" placeholder="Cidade" autocomplete="address-level2" onkeydown="if(event.key==='Enter')document.getElementById('regPass').focus()"/></div>
       </div>
@@ -860,6 +863,7 @@ button{font-family:inherit;font-size:14px;font-weight:600;cursor:pointer;border-
         <div class="seg-tabs" style="margin-bottom:1rem;">
           <button class="seg-tab active" id="precosSubMargem" onclick="switchPrecosView('margem')"><i class="ti ti-tag"></i> Margem e venda</button>
           <button class="seg-tab" id="precosSubVariacao" onclick="switchPrecosView('variacao')"><i class="ti ti-chart-line"></i> Variação de preços</button>
+          <button class="seg-tab" id="precosSubProdutos" onclick="switchPrecosView('produtos')"><i class="ti ti-apple"></i> Gerenciar produtos</button>
         </div>
 
         <!-- VIEW: MARGEM E VENDA -->
@@ -926,6 +930,32 @@ button{font-family:inherit;font-size:14px;font-weight:600;cursor:pointer;border-
             </div>
             <div class="chart-wrap" id="precoChartWrap" style="display:none;height:200px;margin-top:.75rem;"><canvas id="chartPreco"></canvas></div>
           </div>
+        </div>
+
+        <!-- VIEW: GERENCIAR PRODUTOS -->
+        <div id="precos-produtos" style="display:none;">
+          <div class="card" style="margin-bottom:1rem;">
+            <div class="card-label">Adicionar produto</div>
+            <div class="field-row">
+              <input type="text" id="novoProdutoNome" placeholder="Nome do produto"/>
+              <select id="novoProdutoCategoria">
+                <option value="fruta">🍊 Fruta</option>
+                <option value="legume">🥕 Legume</option>
+                <option value="verdura">🥬 Verdura</option>
+              </select>
+            </div>
+            <button class="btn-primary btn-w" onclick="adicionarProduto()"><i class="ti ti-plus"></i> Adicionar</button>
+          </div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:1rem;">
+            <select id="gerProdCatFilter" onchange="renderGerenciarProdutos()" style="flex:1;min-width:110px;">
+              <option value="">Todas categorias</option>
+              <option value="fruta">🍊 Frutas</option>
+              <option value="legume">🥕 Legumes</option>
+              <option value="verdura">🥬 Verduras</option>
+            </select>
+            <input type="text" id="gerProdBusca" placeholder="Buscar produto…" oninput="renderGerenciarProdutos()" style="flex:2;min-width:140px;"/>
+          </div>
+          <div id="listaGerenciarProdutos"></div>
         </div>
       </section>
 
@@ -1022,14 +1052,49 @@ button{font-family:inherit;font-size:14px;font-weight:600;cursor:pointer;border-
   </div>
 </div>
 
+<div class="modal-overlay" id="produtosSetupModal">
+  <div class="modal-box">
+    <div class="modal-head"><span class="modal-title"><i class="ti ti-apple"></i> Base de produtos da loja</span></div>
+    <div id="produtosSetupPasso1">
+      <p style="font-size:13px;color:var(--text2);margin-bottom:1rem;">Sua loja foi criada! Como você quer começar a lista de produtos (frutas, legumes, verduras)?</p>
+      <button class="btn-primary btn-w" style="margin-bottom:.625rem;justify-content:flex-start;" onclick="escolherSetupProdutos('pronta')">
+        <i class="ti ti-list-check"></i> Usar nossa base pronta (142 produtos)
+      </button>
+      <button class="btn-ghost btn-w" style="margin-bottom:.625rem;justify-content:flex-start;" onclick="escolherSetupProdutos('importar')">
+        <i class="ti ti-file-upload"></i> Importar minha própria planilha (CSV)
+      </button>
+      <button class="btn-ghost btn-w" style="margin-bottom:.625rem;justify-content:flex-start;" onclick="escolherSetupProdutos('zero')">
+        <i class="ti ti-circle-dashed"></i> Começar do zero (cadastro manual depois)
+      </button>
+      <p style="text-align:center;margin-top:.5rem;"><a href="#" onclick="event.preventDefault();fecharSetupProdutos()" style="font-size:12px;color:var(--text2);">Decidir depois</a></p>
+    </div>
+    <div id="produtosSetupImportar" style="display:none;">
+      <p style="font-size:13px;color:var(--text2);margin-bottom:.5rem;">Arquivo <strong>.csv</strong> com 2 colunas: <strong>nome</strong> e <strong>categoria</strong> (fruta, legume ou verdura). Exemplo:</p>
+      <pre style="background:var(--bg3);border-radius:var(--radius-sm);padding:.625rem .75rem;font-size:12px;overflow-x:auto;margin-bottom:.75rem;">nome,categoria
+Abacate Avocado,fruta
+Cenoura,legume
+Alface Crespa,verdura</pre>
+      <input type="file" id="produtosCsvInput" accept=".csv" style="margin-bottom:.75rem;width:100%;"/>
+      <div id="produtosImportStatus" style="font-size:12px;color:var(--text2);margin-bottom:.75rem;display:none;"></div>
+      <button class="btn-primary btn-w" onclick="importarProdutosCsv()"><i class="ti ti-upload"></i> Importar</button>
+      <p style="text-align:center;margin-top:.625rem;"><a href="#" onclick="event.preventDefault();document.getElementById('produtosSetupPasso1').style.display='block';document.getElementById('produtosSetupImportar').style.display='none';" style="font-size:12px;color:var(--text2);">← Voltar</a></p>
+    </div>
+  </div>
+</div>
+
 <div id="toast"></div>
 
 <script>
 /* ═══════════ DATA ═══════════ */
-const PRODUTOS={
+const CATALOGO_PADRAO={
   fruta:['Abacate Avocado','Abacate plástica','Abacaxi Hawai','Abacaxi Pérola','Acerola','Ameixa Importada','Amora','Banana Maçã','Banana Nanica','Banana Prata','Banana Terra','Caju','Caqui Fuyu','Caqui Rama','Carambola','Coco Verde','Figo Roxo','Goiaba Branca','Goiaba Vermelha','Graviola','Jaca','Kiwi','Laranja Bahia','Laranja Lima','Laranja Pequena','Laranja Pera','Limão','Limão Siciliano','Mamão Formosa','Mamão Papaya','Manga Bourbon','Manga Hady','Manga Ourinho','Manga Palmer','Manga Rosa','Manga Tommy','Maracujá','Maracujá Doce','Maçã Argentina','Maçã Baby','Maçã Fuji','Maçã Gala','Melancia','Melão Amarelo','Melão Galia','Melão Rei','Melão Sapo','Mexerica Carioca','Mexerica Olé','Mexerica Pokan','Mirtilo','Morango','Pera Willians','Pinha','Pitaya','Pêssego','Uva Benitaka','Uva Brasil','Uva Itália','Uva Niágara','Uva Rubi'],
   legume:['Abóbora Italiana','Abóbora Japonesa','Abóbora Moranga','Alcachofra','Alho','Ameixa Seca','Amendoim com Casca','Batata Asterix','Batata Bolinha','Batata Branca','Batata Lavada','Batata Rosada','Berinjela','Beterraba','Cebola','Cebola Roxa','Cenoura','Cenoura Pacote','Chuchu','Chuchu Preto','Coco Seco','Farinha Fina','Farinha Grossa','Feijão Corado','Gengibre','Inhame','Jiló','Mandioca','Mandioquinha','Maxixe','Milho Bandeja','Milho Saco','Pepino Caipira','Pepino Japonês','Pimenta Cambuci','Pimentão Amarelo','Pimentão Verde','Pimentão Vermelho','Polvilho Doce','Quiabo','Tomate Carmem','Tomate Pissadore','Tomate Pró','Tomatinho','Uva Passa','Vagem'],
   verdura:['Acelga','Agrião','Alface Americana','Alface Crespa','Alface Crespa Hidro','Alface Lisa','Alface Mimosa','Alface Roxa','Alho Poró','Almeirão','Brócolis Comum','Brócolis Ninja','Capim Santo','Cebolinha','Coentro','Cogumelo Paris','Couve Manteiga','Erva Doce','Escarola','Espinafre','Hortelã','Manjericão','Mostarda','Moyashi','Nabo','Pimenta de Cheiro','Rabanete','Repolho Roxo','Repolho Verde','Rúcula','Salsa','Salsão','Shiitake','Shimeji Branco','Shimeji Preto']
+};
+let PRODUTOS={
+  fruta:[...CATALOGO_PADRAO.fruta],
+  legume:[...CATALOGO_PADRAO.legume],
+  verdura:[...CATALOGO_PADRAO.verdura]
 };
 const FORNECEDORES={fruta:['Agro sul','América','Barão','Bela vista','Betel','Bom Jesus','Box15','Box25','Box48','Brasnica','Welitom','Casa d frutas','Diamante','Dinho','Liberty','Fruto bom','Granada','Boa estrela','Martins','Monte vd'],legume:['Aquilino','Box111','Box113','Bruno','Carvalho','Magaretto','Minas d','Mora b','Neco','Rio Nilo','Sul coco','DP empório','Box226','Canaã'],verdura:['Aquira','Arizona','Carla','Elias','Jacarei','Lucas','Neném','P194','P198','P207','P208','P216','P217','P218','Velho','Baxinho']};
 const DESPESAS_TIPO=['Gelo','Gasolina','Embalagem','Café','Almoço','Carregador','Estacionamento','Frete','Caixa vazia'];
@@ -1256,6 +1321,7 @@ async function doRegister(){
 
   showToast(temConvite?'Conta criada! Bem-vindo(a) à equipe 🎉':'Conta criada com sucesso!');
   await carregarPerfilEEntrar(userId);
+  if(!temConvite)setTimeout(()=>abrirSetupProdutos(lojaIdFinal),400);
 }
 
 async function carregarPerfilEEntrar(userId){
@@ -1615,7 +1681,7 @@ function switchTab(tab){
   if(tab==='precos'){renderPrecosView();}
   if(tab==='historico')renderHistoricoCompras();
 
-  if(tab==='pedidos'){renderPedido();renderHistorico();renderPedidoTabela();updateSalvarLabel();}
+  if(tab==='pedidos'){switchView(localStorage.getItem('ceasa_pedido_view')||'lista');renderPedido();renderHistorico();renderPedidoTabela();updateSalvarLabel();}
   if(tab==='master'){renderMaster();}
   if(tab==='compras'){renderPendentes();renderNaoComprados();renderCompras();refreshHeadings();}
   if(tab==='loja'){editingLojaId=null;renderLojas();loadLojaForm(currentLojaId);}
@@ -1639,6 +1705,7 @@ function switchView(view){
   el('view-tabela').style.display=view==='tabela'?'':'none';
   el('sticky-save').style.display=view==='tabela'?'block':'none';
   if(view==='tabela'){renderTabelaGrid();renderPedidoTabela();updateSalvarLabel();}
+  localStorage.setItem('ceasa_pedido_view',view);
 }
 
 /* ── DATE ── */
@@ -2505,6 +2572,7 @@ async function addNovaLoja(){
     await selectLoja(lojaObj.id);
     switchTab('loja');
     editLoja(lojaObj.id);
+    setTimeout(()=>abrirSetupProdutos(lojaObj.id),400);
   }catch(e){showToast('Erro ao criar loja: '+e.message);}
 }
 function renderLojas(){
@@ -3192,8 +3260,150 @@ async function selecionarPlano(plano){
 /* ══ FIM MASTER ══ */
 
 /* ── CARREGAR DADOS DO BANCO (Pedidos + Compras) ── */
+/* ── SETUP INICIAL DE PRODUTOS (loja nova) ── */
+let setupProdutosLojaId=null;
+function abrirSetupProdutos(lojaId){
+  setupProdutosLojaId=lojaId;
+  document.getElementById('produtosSetupPasso1').style.display='block';
+  document.getElementById('produtosSetupImportar').style.display='none';
+  const fi=document.getElementById('produtosCsvInput');if(fi)fi.value='';
+  const st=document.getElementById('produtosImportStatus');if(st){st.style.display='none';st.textContent='';}
+  el('produtosSetupModal').classList.add('open');
+}
+function fecharSetupProdutos(){
+  el('produtosSetupModal').classList.remove('open');
+  setupProdutosLojaId=null;
+}
+async function escolherSetupProdutos(opcao){
+  if(opcao==='zero'){
+    fecharSetupProdutos();
+    showToast('Loja pronta! Cadastre produtos quando quiser em Custo/Preço → Gerenciar produtos.');
+    return;
+  }
+  if(opcao==='importar'){
+    document.getElementById('produtosSetupPasso1').style.display='none';
+    document.getElementById('produtosSetupImportar').style.display='block';
+    return;
+  }
+  if(opcao==='pronta'){
+    if(!setupProdutosLojaId)return;
+    showToast('Copiando base de produtos…');
+    try{
+      const linhas=[];
+      ['fruta','legume','verdura'].forEach(cat=>{CATALOGO_PADRAO[cat].forEach(nome=>{linhas.push({loja_id:setupProdutosLojaId,categoria:cat,nome});});});
+      const {error}=await db.from('produtos').upsert(linhas,{onConflict:'loja_id,categoria,nome'});
+      if(error){showToast('Erro ao copiar base: '+error.message);return;}
+      if(setupProdutosLojaId===currentLojaId){await carregarProdutos();renderGerenciarProdutos();}
+      showToast('Base de produtos pronta! 142 itens adicionados.');
+      fecharSetupProdutos();
+    }catch(e){showToast('Erro: '+e.message);}
+  }
+}
+function parseCsvProdutos(texto){
+  const linhas=texto.split(/\r?\n/).map(l=>l.trim()).filter(l=>l.length>0);
+  const categoriasValidas=['fruta','legume','verdura'];
+  const resultado=[];const erros=[];
+  linhas.forEach((linha,idx)=>{
+    const partes=linha.split(',').map(p=>p.trim().replace(/^"|"$/g,''));
+    if(partes.length<2)return;
+    const [nome,categoriaRaw]=partes;
+    if(idx===0&&nome.toLowerCase()==='nome'&&(categoriaRaw||'').toLowerCase()==='categoria')return;
+    const categoria=(categoriaRaw||'').toLowerCase();
+    if(!nome)return;
+    if(!categoriasValidas.includes(categoria)){erros.push(`Linha ${idx+1}: categoria "${categoriaRaw}" inválida`);return;}
+    resultado.push({nome,categoria});
+  });
+  return {resultado,erros};
+}
+async function importarProdutosCsv(){
+  const fileInput=document.getElementById('produtosCsvInput');
+  const statusEl=document.getElementById('produtosImportStatus');
+  if(!fileInput.files||!fileInput.files[0]){showToast('Escolha um arquivo CSV primeiro');return;}
+  if(!setupProdutosLojaId){showToast('Erro: loja não identificada');return;}
+  statusEl.style.display='block';statusEl.textContent='Lendo arquivo…';
+  try{
+    const texto=await fileInput.files[0].text();
+    const {resultado,erros}=parseCsvProdutos(texto);
+    if(!resultado.length){statusEl.textContent='Nenhum produto válido encontrado no arquivo. Confira o formato do CSV.';return;}
+    statusEl.textContent=`Importando ${resultado.length} produto(s)…`;
+    const linhas=resultado.map(r=>({loja_id:setupProdutosLojaId,categoria:r.categoria,nome:r.nome}));
+    const {error}=await db.from('produtos').upsert(linhas,{onConflict:'loja_id,categoria,nome'});
+    if(error){statusEl.textContent='Erro ao importar: '+error.message;return;}
+    if(setupProdutosLojaId===currentLojaId){await carregarProdutos();renderGerenciarProdutos();}
+    let msg=`✅ ${resultado.length} produto(s) importado(s)!`;
+    if(erros.length)msg+=` (${erros.length} linha(s) ignorada(s): categoria inválida)`;
+    statusEl.textContent=msg;
+    showToast('Produtos importados!');
+    setTimeout(fecharSetupProdutos,1800);
+  }catch(e){statusEl.textContent='Erro: '+e.message;}
+}
+
+async function carregarProdutos(){
+  try{
+    const {data,error}=await db.from('produtos').select('categoria,nome').eq('loja_id',currentLojaId).eq('ativo',true).order('nome');
+    if(error)return; // mantém o que já tinha carregado em caso de falha de rede
+    const novo={fruta:[],legume:[],verdura:[]};
+    (data||[]).forEach(p=>{if(novo[p.categoria])novo[p.categoria].push(p.nome);});
+    PRODUTOS=novo;
+  }catch(e){}
+}
+async function renderGerenciarProdutos(){
+  const cont=el('listaGerenciarProdutos');if(!cont)return;
+  cont.innerHTML='<p style="font-size:13px;color:var(--text3);padding:.5rem 0;">Carregando…</p>';
+  try{
+    const {data,error}=await db.from('produtos').select('*').eq('loja_id',currentLojaId).order('categoria').order('nome');
+    if(error){cont.innerHTML='<div class="empty">Erro ao carregar produtos.</div>';return;}
+    const catFiltro=el('gerProdCatFilter')?el('gerProdCatFilter').value:'';
+    const busca=(el('gerProdBusca')?el('gerProdBusca').value:'').toLowerCase();
+    const emojis={fruta:'🍊',legume:'🥕',verdura:'🥬'};
+    const filtrados=(data||[]).filter(p=>(!catFiltro||p.categoria===catFiltro)&&(!busca||p.nome.toLowerCase().includes(busca)));
+    if(!filtrados.length){cont.innerHTML='<div class="empty"><i class="ti ti-apple"></i>Nenhum produto encontrado. Adicione um acima, ou ajuste os filtros.</div>';return;}
+    cont.innerHTML=filtrados.map(p=>`<div class="data-card"${p.ativo?'':' style="opacity:.55;"'}>
+      <div style="flex:1;min-width:0;">
+        <p style="font-size:14px;font-weight:600;">${emojis[p.categoria]||''} ${p.nome}</p>
+        <p style="font-size:12px;color:var(--text2);">${p.ativo?'Ativo':'Desativado'}</p>
+      </div>
+      <button class="btn-ghost btn-sm" onclick="alternarProdutoAtivo(${p.id},${!p.ativo})" title="${p.ativo?'Desativar':'Reativar'}"><i class="ti ti-${p.ativo?'eye-off':'eye'}"></i></button>
+      <button class="btn-danger-soft btn-sm" onclick="excluirProduto(${p.id},'${p.nome.replace(/'/g,"\\'")}')" title="Excluir"><i class="ti ti-trash"></i></button>
+    </div>`).join('');
+  }catch(e){cont.innerHTML='<div class="empty">Erro ao carregar produtos.</div>';}
+}
+async function adicionarProduto(){
+  const nome=el('novoProdutoNome').value.trim();
+  const categoria=el('novoProdutoCategoria').value;
+  if(!nome){showToast('Digite o nome do produto');return;}
+  try{
+    const {error}=await db.from('produtos').upsert({loja_id:currentLojaId,categoria,nome,ativo:true},{onConflict:'loja_id,categoria,nome'});
+    if(error){showToast('Erro: '+error.message);return;}
+    el('novoProdutoNome').value='';
+    await carregarProdutos();
+    renderGerenciarProdutos();
+    showToast(nome+' adicionado!');
+  }catch(e){showToast('Erro: '+e.message);}
+}
+async function alternarProdutoAtivo(id,novoStatus){
+  try{
+    const {error}=await db.from('produtos').update({ativo:novoStatus}).eq('id',id);
+    if(error){showToast('Erro: '+error.message);return;}
+    await carregarProdutos();
+    renderGerenciarProdutos();
+    showToast(novoStatus?'Produto reativado':'Produto desativado');
+  }catch(e){showToast('Erro: '+e.message);}
+}
+async function excluirProduto(id,nome){
+  if(!confirm('Excluir "'+nome+'" da lista de produtos? Pedidos e compras já feitos com esse nome não são afetados.'))return;
+  try{
+    const {error}=await db.from('produtos').delete().eq('id',id);
+    if(error){showToast('Erro: '+error.message);return;}
+    await carregarProdutos();
+    renderGerenciarProdutos();
+    showToast('Produto excluído');
+  }catch(e){showToast('Erro: '+e.message);}
+}
+
 async function carregarDadosDaLoja(){
   if(!currentLojaId)return;
+  await carregarProdutos();
   try{
     // Carrega dados atualizados da loja
     const { data: lojaData } = await db
@@ -3436,10 +3646,12 @@ function switchPrecosView(view){
   precosViewAtual=view;
   el('precos-margem').style.display=view==='margem'?'':'none';
   el('precos-variacao').style.display=view==='variacao'?'':'none';
-  document.querySelectorAll('#precosSubMargem,#precosSubVariacao').forEach(b=>b.classList.remove('active'));
+  el('precos-produtos').style.display=view==='produtos'?'':'none';
+  document.querySelectorAll('#precosSubMargem,#precosSubVariacao,#precosSubProdutos').forEach(b=>b.classList.remove('active'));
   el('precosSub'+view.charAt(0).toUpperCase()+view.slice(1)).classList.add('active');
   if(view==='variacao'){populatePrecoProdSelect();renderPrecoHistorico();}
   if(view==='margem')renderPrecosMedia();
+  if(view==='produtos')renderGerenciarProdutos();
 }
 function renderPrecosView(){
   switchPrecosView(precosViewAtual);
