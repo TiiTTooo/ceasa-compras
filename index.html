@@ -3964,30 +3964,29 @@ async function exportarRelatorioCompradorPdf(){
     const emojisTxt={fruta:'Frutas',legume:'Legumes',verdura:'Verduras'};
     const {jsPDF}=window.jspdf;
     const doc=new jsPDF();
-    doc.setFontSize(16);
-    doc.text('Hortiz — Pedido consolidado por loja',14,18);
-    doc.setFontSize(11);
-    doc.setTextColor(90);
-    doc.text(`Data: ${formatBR(currentDate)}`,14,26);
-    doc.setTextColor(0);
-    let y=36;
+    let primeira=true;
     lojas.forEach(loja=>{
       const itensLoja=data.filter(i=>i.loja_id===loja.id).sort((a,b)=>a.categoria.localeCompare(b.categoria)||a.produto.localeCompare(b.produto,'pt-BR'));
       if(!itensLoja.length)return;
-      if(y>260){doc.addPage();y=20;}
+      if(!primeira)doc.addPage();
+      primeira=false;
+      doc.setFontSize(16);
+      doc.text('Hortiz — Pedido consolidado por loja',14,18);
+      doc.setFontSize(11);
+      doc.setTextColor(90);
+      doc.text(`Data: ${formatBR(currentDate)}`,14,26);
+      doc.setTextColor(0);
       doc.setFontSize(13);
-      doc.text(loja.nome,14,y);
-      y+=4;
+      doc.text(loja.nome,14,36);
       const body=itensLoja.map(i=>[emojisTxt[i.categoria]||i.categoria,i.produto,String(i.qtd)+(i.tipo==='caixa'?' cx':' un')]);
       doc.autoTable({
-        startY:y,
+        startY:40,
         head:[['Categoria','Produto','Qtd']],
         body,
         styles:{fontSize:9},
         headStyles:{fillColor:[96,165,250]},
         margin:{left:14,right:14}
       });
-      y=doc.lastAutoTable.finalY+10;
     });
     doc.save(`pedido-por-loja-${currentDate}.pdf`);
     showToast('Relatório gerado!');
