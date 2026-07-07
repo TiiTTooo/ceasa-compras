@@ -390,7 +390,6 @@ button{font-family:inherit;font-size:14px;font-weight:600;cursor:pointer;border-
       <div class="side-btn" data-tab="gerenciar"    onclick="switchTab('gerenciar')"><i class="ti ti-adjustments"></i> Gerenciar Produtos e Forn.</div>
       <div class="side-sep"></div>
       <div class="side-btn" data-tab="loja"         onclick="switchTab('loja')" id="sideLoja"><i class="ti ti-building-store"></i> Minha Loja</div>
-      <div class="side-btn" data-tab="consolidado" onclick="switchTab('consolidado')" id="sideConsolidado" style="display:none;"><i class="ti ti-stack-2"></i> Visão Consolidada</div>
       <div class="side-btn" data-tab="usuarios"     onclick="switchTab('usuarios')" id="sideUsuarios"><i class="ti ti-users"></i> Usuários</div>
       <div class="side-btn" data-tab="assinatura"   onclick="switchTab('assinatura')" id="sideAssinatura"><i class="ti ti-credit-card"></i> Assinatura</div>
       <div class="side-btn" data-tab="master" onclick="switchTab('master')" id="sideMaster" style="display:none;color:var(--amber);"><i class="ti ti-crown"></i> Master</div>
@@ -524,7 +523,27 @@ button{font-family:inherit;font-size:14px;font-weight:600;cursor:pointer;border-
         </div>
         <div id="resumoSemanaCompras" style="display:none;background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:.875rem 1rem;margin-bottom:1rem;"></div>
 
+        <!-- VISÃO DO COMPRADOR (consolidada entre lojas vinculadas) -->
+        <div id="compras-comprador-view" style="display:none;">
+          <div id="voltarComprasNormalWrap" style="display:none;margin-bottom:.625rem;">
+            <a href="#" onclick="event.preventDefault();voltarComprasNormal()" style="font-size:12px;color:var(--text2);">← Voltar pra visão da loja atual</a>
+          </div>
+          <div class="cat-btn-bar" style="display:flex;gap:6px;flex-wrap:wrap;" id="comprCatBtns">
+            <button class="cat-btn active" data-cat="fruta" onclick="selecionarCatComprador('fruta')" style="flex:1;min-width:90px;font-size:15px;">🍊 Frutas</button>
+            <button class="cat-btn" data-cat="legume" onclick="selecionarCatComprador('legume')" style="flex:1;min-width:90px;font-size:15px;">🥕 Legumes</button>
+            <button class="cat-btn" data-cat="verdura" onclick="selecionarCatComprador('verdura')" style="flex:1;min-width:90px;font-size:15px;">🥬 Verduras</button>
+          </div>
+          <p style="font-size:11px;color:var(--text2);margin:.5rem 0 .875rem;">Pedido consolidado de todas as lojas vinculadas a você como comprador — confirmar aqui distribui automaticamente pra cada loja de origem.</p>
+          <div id="listaComprasComprador"></div>
+          <div class="sh"><i class="ti ti-check"></i> Comprados hoje (todas as lojas)</div>
+          <div id="listaComprasCompradorFeitas"></div>
+        </div>
+
         <!-- Sub-abas da aba Compras -->
+        <div id="compras-normal-view">
+        <div id="comprasOwnerConsolidadoBtnWrap" style="display:none;margin-bottom:.75rem;">
+          <button class="btn-ghost btn-w" onclick="mostrarComprasConsolidado()"><i class="ti ti-stack-2"></i> Ver consolidado de todas as minhas lojas</button>
+        </div>
         <div class="seg-tabs" style="margin-bottom:1rem;">
           <button class="seg-tab active" id="ceasaSubCat" onclick="switchCeasaView('categoria')"><i class="ti ti-category"></i> Por categoria</button>
           <button class="seg-tab" id="ceasaSubItem" onclick="switchCeasaView('item')"><i class="ti ti-list"></i> Item por item</button>
@@ -572,6 +591,7 @@ button{font-family:inherit;font-size:14px;font-weight:600;cursor:pointer;border-
         </div>
         <div class="sh"><i class="ti ti-check"></i> Comprados hoje</div>
         <div id="listaCompras"></div>
+        </div>
       </section>
 
       <!-- DESPESAS -->
@@ -748,18 +768,6 @@ button{font-family:inherit;font-size:14px;font-weight:600;cursor:pointer;border-
           <i class="ti ti-alert-triangle" style="color:var(--amber);font-size:15px;flex-shrink:0;"></i>
           <span style="font-size:13px;color:var(--amber);font-weight:600;">Cada loja criada gera uma cobrança mensal própria (trial de 3 dias primeiro)</span>
         </div>
-      </section>
-
-      <!-- VISÃO CONSOLIDADA (dono com mais de uma loja) -->
-      <section id="tab-consolidado" style="display:none;">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.75rem;gap:8px;flex-wrap:wrap;">
-          <p style="font-size:13px;color:var(--text2);margin:0;">Total pendente de todas as suas lojas, pra fazer a compra de uma vez</p>
-          <button class="btn-ghost btn-sm" onclick="exportarConsolidadoPdf()"><i class="ti ti-file-type-pdf"></i> Exportar PDF por loja</button>
-        </div>
-        <div style="display:flex;align-items:center;gap:8px;margin-bottom:.875rem;">
-          <input type="date" id="consolidadoData" onchange="currentDate=this.value;renderConsolidado()" style="flex:1;"/>
-        </div>
-        <div id="consolidadoLista"></div>
       </section>
 
       <!-- ASSINATURA -->
@@ -1051,6 +1059,7 @@ button{font-family:inherit;font-size:14px;font-weight:600;cursor:pointer;border-
             <select id="invPapel">
               <option value="manager">Gerente (acesso completo da loja)</option>
               <option value="pedidos">Apenas Pedidos (só lança pedido)</option>
+              <option value="comprador">Comprador (compra consolidada de várias lojas)</option>
             </select>
           </div>
           <button class="btn-primary" onclick="saveUsuario()"><i class="ti ti-send"></i> Enviar convite</button>
@@ -1345,7 +1354,7 @@ async function verificarConviteRegistro(){
       conviteDetectado=data;
       lojaField.style.display='none';
       msgEl.style.display='block';
-      const papelTxt=data.role==='pedidos'?'pessoa de pedidos':'gerente';
+      const papelTxt=data.role==='pedidos'?'pessoa de pedidos':data.role==='comprador'?'comprador(a)':'gerente';
       msgEl.textContent='✅ Convite encontrado! Você vai entrar como '+papelTxt+' de "'+((data.lojas&&data.lojas.nome)||'loja')+'".';
     } else {
       conviteDetectado=null;lojaField.style.display='';msgEl.style.display='none';
@@ -1403,6 +1412,10 @@ async function doRegister(){
   });
   if(perfilError){ mostrarErroRegistro('Erro ao criar perfil: '+perfilError.message); return; }
 
+  if(roleFinal==='comprador'){
+    try{await db.from('loja_membros').insert({user_id:userId,loja_id:lojaIdFinal,role:'comprador'});}catch(e){}
+  }
+
   showToast(temConvite?'Conta criada! Bem-vindo(a) à equipe 🎉':'Conta criada com sucesso!');
   await carregarPerfilEEntrar(userId);
   if(!temConvite)setTimeout(()=>iniciarSetupLoja(lojaIdFinal),400);
@@ -1440,20 +1453,28 @@ async function carregarPerfilEEntrar(userId){
 async function enterApp(){
   el('loginScreen').style.display='none';
   el('appShell').style.display='flex';el('appShell').style.flexDirection='column';
-  if((currentUser.role==='manager'||currentUser.role==='pedidos')&&currentUser.lojaId){currentLojaId=currentUser.lojaId;}
+  if((currentUser.role==='manager'||currentUser.role==='pedidos'||currentUser.role==='comprador')&&currentUser.lojaId){currentLojaId=currentUser.lojaId;}
   const ehGerente=currentUser.role==='manager';
   const ehPedidos=currentUser.role==='pedidos';
+  const ehComprador=currentUser.role==='comprador';
   el('sideUsuarios').style.display=ehGerente?'none':'';
   el('sideAssinatura').style.display=ehGerente?'none':'';
   el('sideLoja').style.display=ehGerente?'none':'';
   await carregarMinhasLojas();
-  el('sideConsolidado').style.display=(!ehGerente&&!ehPedidos&&lojas.length>1)?'':'none';
   if(ehPedidos){
     document.querySelectorAll('.side-btn').forEach(btn=>{
       btn.style.display=(btn.dataset.tab==='home'||btn.dataset.tab==='pedidos')?'':'none';
     });
     document.querySelectorAll('.nav-btn').forEach(btn=>{
       btn.style.display=(btn.dataset.tab==='home'||btn.dataset.tab==='pedidos')?'':'none';
+    });
+  }
+  if(ehComprador){
+    document.querySelectorAll('.side-btn').forEach(btn=>{
+      btn.style.display=(btn.dataset.tab==='home'||btn.dataset.tab==='compras')?'':'none';
+    });
+    document.querySelectorAll('.nav-btn').forEach(btn=>{
+      btn.style.display=(btn.dataset.tab==='home'||btn.dataset.tab==='compras')?'':'none';
     });
   }
   refreshHeader();
@@ -1553,7 +1574,7 @@ function refreshHeader(){
   const userInfoEl=el('headerUserInfo');
   let papel='';
   if(userInfoEl&&currentUser){
-    papel=currentUser.isAdmin?'Admin master':(currentUser.role==='owner'?'Dono':currentUser.role==='pedidos'?'Apenas Pedidos':'Gerente');
+    papel=currentUser.isAdmin?'Admin master':(currentUser.role==='owner'?'Dono':currentUser.role==='pedidos'?'Apenas Pedidos':currentUser.role==='comprador'?'Comprador':'Gerente');
     userInfoEl.textContent=capitalizarNome(currentUser.nome)+' · '+papel;
   }
   const sbNome=el('sidebarLojaNome');
@@ -1789,7 +1810,7 @@ function renderPrecoHistorico(){
 }
 
 /* ── ALL TABS ── */
-const ALL_TABS=['home','pedidos','compras','despesas','fornecedores','relatorios','historico','precos','gerenciar','loja','consolidado','usuarios','assinatura','master'];
+const ALL_TABS=['home','pedidos','compras','despesas','fornecedores','relatorios','historico','precos','gerenciar','loja','usuarios','assinatura','master'];
 function switchTab(tab){
   if(acessoOperacionalBloqueado&&currentUser&&(currentUser.role==='manager'||currentUser.role==='pedidos')&&(tab==='pedidos'||tab==='compras')){
     showToast('Assinatura da loja vencida — fale com o dono pra renovar.');
@@ -1799,6 +1820,10 @@ function switchTab(tab){
     showToast('Seu acesso é só pra fazer pedidos.');
     return;
   }
+  if(currentUser&&currentUser.role==='comprador'&&tab!=='home'&&tab!=='compras'){
+    showToast('Seu acesso é só pra aba de Compras.');
+    return;
+  }
   if(sidebarOpen&&window.matchMedia('(max-width:768px)').matches)toggleSidebar();
   ALL_TABS.forEach(t=>{const s=el('tab-'+t);if(s)s.style.display=t===tab?'':'none';});
   document.querySelectorAll('[data-tab]').forEach(b=>b.classList.toggle('active',b.dataset.tab===tab));
@@ -1806,7 +1831,6 @@ function switchTab(tab){
   if(tab==='relatorios'){setTimeout(()=>{initBarChart();renderRelTotals();},50);}
   if(tab==='precos'){renderPrecosView();}
   if(tab==='gerenciar'){switchGerenciarView(gerenciarViewAtual);}
-  if(tab==='consolidado'){const cd=el('consolidadoData');if(cd)cd.value=currentDate;renderConsolidado();}
   if(tab==='historico')renderHistoricoCompras();
 
   if(tab==='pedidos'){
@@ -1817,7 +1841,16 @@ function switchTab(tab){
     if(relSem){relSem.style.display=ehPedidos?'block':'none';if(ehPedidos)renderRelatorioSemanalPedidos();}
   }
   if(tab==='master'){renderMaster();}
-  if(tab==='compras'){renderPendentes();renderNaoComprados();renderCompras();refreshHeadings();}
+  if(tab==='compras'){
+    const souComprador=currentUser&&currentUser.role==='comprador';
+    const souDonoMultiLoja=currentUser&&currentUser.role==='owner'&&lojas.length>1;
+    el('compras-comprador-view').style.display=souComprador?'':'none';
+    el('compras-normal-view').style.display=souComprador?'none':'';
+    const btnWrap=el('comprasOwnerConsolidadoBtnWrap');if(btnWrap)btnWrap.style.display=souDonoMultiLoja?'':'none';
+    const voltarWrap=el('voltarComprasNormalWrap');if(voltarWrap)voltarWrap.style.display=souComprador?'none':'';
+    if(souComprador){renderComprasComprador();}
+    else{renderPendentes();renderNaoComprados();renderCompras();refreshHeadings();}
+  }
   if(tab==='loja'){editingLojaId=null;renderLojas();loadLojaForm(currentLojaId);}
   if(tab==='usuarios'){renderUsuarios();populateInvLoja();}
   if(tab==='fornecedores'){renderFornecedores();}
@@ -2752,15 +2785,31 @@ async function saveUsuario(){
   const lojaNome=(lojas.find(l=>l.id===lojaId)||{}).nome||'sua loja';
   let tel=telInput.replace(/\D/g,'');
   if(tel&&!tel.startsWith('55'))tel='55'+tel;
-  try{
-    const {error}=await db.from('convites_usuario').insert({email,telefone:telInput||null,loja_id:lojaId,role:papel,criado_por:currentUser.id});
-    if(error){
-      showToast(error.code==='23505'?'Já existe um convite pendente pra esse e-mail nessa loja':'Erro: '+error.message);
-      return;
-    }
-  }catch(e){showToast('Erro: '+e.message);return;}
 
-  const descPapel=papel==='pedidos'?'lançar pedidos':'gerenciar';
+  if(papel==='comprador'){
+    showToast('Verificando…');
+    try{
+      const {data,error}=await db.rpc('convidar_ou_vincular_comprador',{p_email:email.toLowerCase(),p_loja_id:lojaId});
+      if(error){showToast('Erro: '+error.message);return;}
+      if(data==='vinculado'){
+        showToast(email+' já tinha conta de comprador — vinculado a "'+lojaNome+'" na hora!');
+        el('invNome').value='';el('invEmail').value='';el('invTelefone').value='';
+        renderUsuarios();
+        return;
+      }
+      // se não tinha conta, criou convite normal — segue o fluxo de mandar o link
+    }catch(e){showToast('Erro: '+e.message);return;}
+  } else {
+    try{
+      const {error}=await db.from('convites_usuario').insert({email,telefone:telInput||null,loja_id:lojaId,role:papel,criado_por:currentUser.id});
+      if(error){
+        showToast(error.code==='23505'?'Já existe um convite pendente pra esse e-mail nessa loja':'Erro: '+error.message);
+        return;
+      }
+    }catch(e){showToast('Erro: '+e.message);return;}
+  }
+
+  const descPapel=papel==='pedidos'?'lançar pedidos':papel==='comprador'?'comprar (consolidado)':'gerenciar';
   const msg=`Oi, ${nome}! Você foi convidado(a) para ${descPapel} a loja "${lojaNome}" no Hortiz. Faça seu cadastro em ${APP_URL} usando o e-mail ${email} — o sistema já vai te reconhecer automaticamente.`;
   const emailBtn=el('conviteEmailBtn');
   emailBtn.href='mailto:'+encodeURIComponent(email)+'?subject='+encodeURIComponent('Convite — Hortiz')+'&body='+encodeURIComponent(msg);
@@ -2786,7 +2835,7 @@ async function renderUsuarios(){
   try{
     const lojaIds=lojas.map(l=>l.id);
     const [{data:gerentes},{data:convites}]=await Promise.all([
-      lojaIds.length?db.from('perfis').select('*').in('loja_id',lojaIds).in('role',['manager','pedidos']):Promise.resolve({data:[]}),
+      lojaIds.length?db.from('perfis').select('*').in('loja_id',lojaIds).in('role',['manager','pedidos','comprador']):Promise.resolve({data:[]}),
       db.from('convites_usuario').select('*, lojas(nome)').eq('criado_por',currentUser.id).order('created_at',{ascending:false})
     ]);
     let html='';
@@ -2795,16 +2844,18 @@ async function renderUsuarios(){
       const nomeEscapado=(g.nome||'').replace(/'/g,"\\'");
       const opcoesLoja=lojas.map(l=>`<option value="${l.id}"${l.id===g.loja_id?' selected':''}>${l.nome}</option>`).join('');
       const ehPedidos=g.role==='pedidos';
+      const ehComprador=g.role==='comprador';
+      const rotulo=ehComprador?'Comprador':ehPedidos?'Apenas Pedidos':'Gerente';
       html+=`<div class="data-card">
         <div style="flex:1;min-width:0;">
           <p style="font-size:14px;font-weight:600;">${g.nome}</p>
           <p style="font-size:12px;color:var(--text2);">${g.email}</p>
           <p id="gerLojaTxt-${g.id}" style="font-size:12px;color:var(--text2);margin-top:2px;">${lojaNome}</p>
-          ${lojas.length>1?`<select id="gerLojaSel-${g.id}" onchange="reatribuirGerente('${g.id}',this.value)" style="display:none;font-size:12px;padding:3px 6px;margin-top:4px;max-width:220px;width:100%;">${opcoesLoja}</select>`:''}
+          ${lojas.length>1&&!ehComprador?`<select id="gerLojaSel-${g.id}" onchange="reatribuirGerente('${g.id}',this.value)" style="display:none;font-size:12px;padding:3px 6px;margin-top:4px;max-width:220px;width:100%;">${opcoesLoja}</select>`:''}
         </div>
-        ${badge(ehPedidos?'badge-owner':'badge-manager',ehPedidos?'Apenas Pedidos':'Gerente')}
-        ${lojas.length>1?`<button class="btn-ghost btn-sm" onclick="toggleEditGerente('${g.id}')" title="Editar loja"><i class="ti ti-edit"></i></button>`:''}
-        <button class="btn-danger-soft btn-sm" onclick="removerGerente('${g.id}','${nomeEscapado}')" title="Remover acesso"><i class="ti ti-trash"></i></button>
+        ${badge(ehComprador?'badge-owner':ehPedidos?'badge-owner':'badge-manager',rotulo)}
+        ${lojas.length>1&&!ehComprador?`<button class="btn-ghost btn-sm" onclick="toggleEditGerente('${g.id}')" title="Editar loja"><i class="ti ti-edit"></i></button>`:''}
+        ${ehComprador?`<button class="btn-danger-soft btn-sm" onclick="removerVinculoComprador('${g.id}',${g.loja_id},'${nomeEscapado}')" title="Desvincular desta loja"><i class="ti ti-unlink"></i></button>`:`<button class="btn-danger-soft btn-sm" onclick="removerGerente('${g.id}','${nomeEscapado}')" title="Remover acesso"><i class="ti ti-trash"></i></button>`}
       </div>`;
     });
     (convites||[]).filter(c=>!c.usado).forEach(c=>{
@@ -2835,6 +2886,15 @@ async function reatribuirGerente(perfilId,novaLojaId){
     if(error){showToast('Erro ao mover gerente: '+error.message);return;}
     const novaLoja=lojas.find(l=>l.id===parseInt(novaLojaId));
     showToast('Gerente movido pra '+(novaLoja?novaLoja.nome:'outra loja')+'!');
+    renderUsuarios();
+  }catch(e){showToast('Erro: '+e.message);}
+}
+async function removerVinculoComprador(perfilId,lojaId,nome){
+  if(!confirm('Desvincular "'+nome+'" dessa loja como comprador? Ele continua com acesso às outras lojas onde também é comprador.'))return;
+  try{
+    const {error}=await db.from('loja_membros').delete().eq('user_id',perfilId).eq('loja_id',lojaId).eq('role','comprador');
+    if(error){showToast('Erro: '+error.message);return;}
+    showToast('Desvinculado dessa loja.');
     renderUsuarios();
   }catch(e){showToast('Erro: '+e.message);}
 }
@@ -3813,77 +3873,128 @@ async function renderRelatorioSemanalPedidos(){
       (linhas.length?linhas.map(l=>`<div style="display:flex;justify-content:space-between;font-size:13px;padding:4px 0;border-bottom:1px solid var(--border);"><span>${emojis[l.categoria]||''} ${l.produto}</span><strong>${l.qtd}</strong></div>`).join(''):'<p style="font-size:12px;color:var(--text2);">Nenhum pedido nesses 7 dias.</p>');
   }catch(e){cont.innerHTML='<p style="font-size:13px;color:var(--red);">Erro ao carregar relatório.</p>';}
 }
-async function renderConsolidado(){
-  const cont=el('consolidadoLista');if(!cont)return;
+/* ── VISÃO DO COMPRADOR (consolidada entre lojas vinculadas) ── */
+function mostrarComprasConsolidado(){
+  el('compras-normal-view').style.display='none';
+  el('compras-comprador-view').style.display='';
+  const voltarWrap=el('voltarComprasNormalWrap');if(voltarWrap)voltarWrap.style.display='';
+  renderComprasComprador();
+}
+function voltarComprasNormal(){
+  el('compras-comprador-view').style.display='none';
+  el('compras-normal-view').style.display='';
+  renderPendentes();renderNaoComprados();renderCompras();refreshHeadings();
+}
+let comprCatAtiva='fruta';
+let comprasComprAgregado=[];
+function selecionarCatComprador(cat){
+  comprCatAtiva=cat;
+  document.querySelectorAll('#comprCatBtns .cat-btn').forEach(b=>b.classList.toggle('active',b.dataset.cat===cat));
+  renderComprasComprador();
+}
+async function renderComprasComprador(){
+  const cont=el('listaComprasComprador');if(!cont)return;
   cont.innerHTML='<p style="font-size:13px;color:var(--text3);padding:.5rem 0;">Carregando…</p>';
   try{
     const idsLojas=lojas.map(l=>l.id);
-    const {data,error}=await db.from('itens_pedido').select('*').in('loja_id',idsLojas).eq('data',currentDate).eq('status','pendente');
+    if(!idsLojas.length){cont.innerHTML='<div class="empty">Você ainda não está vinculado a nenhuma loja como comprador.</div>';renderComprasCompradorFeitas();return;}
+    const {data,error}=await db.from('itens_pedido').select('*').in('loja_id',idsLojas).eq('data',currentDate).eq('status','pendente').eq('categoria',comprCatAtiva);
     if(error){cont.innerHTML='<div class="empty">Erro ao carregar: '+error.message+'</div>';return;}
     const porProduto={};
     (data||[]).forEach(item=>{
-      const key=item.categoria+'|'+item.produto;
-      if(!porProduto[key])porProduto[key]={categoria:item.categoria,produto:item.produto,total:0,porLoja:{}};
+      const key=item.produto;
+      if(!porProduto[key])porProduto[key]={categoria:item.categoria,produto:item.produto,tipo:item.tipo,unidPorCaixa:item.unid_por_caixa,total:0,origens:[]};
       porProduto[key].total+=item.qtd;
-      porProduto[key].porLoja[item.loja_id]=(porProduto[key].porLoja[item.loja_id]||0)+item.qtd;
+      porProduto[key].origens.push({itemId:item.id,lojaId:item.loja_id,qtd:item.qtd});
     });
-    const linhas=Object.values(porProduto).sort((a,b)=>a.categoria.localeCompare(b.categoria)||a.produto.localeCompare(b.produto,'pt-BR'));
-    window._consolidadoData=linhas;
-    if(!linhas.length){cont.innerHTML='<div class="empty"><i class="ti ti-clipboard-list"></i>Nenhum pedido pendente nessa data, em nenhuma das suas lojas.</div>';return;}
-    const emojis={fruta:'🍊',legume:'🥕',verdura:'🥬'};
+    const linhas=Object.values(porProduto).sort((a,b)=>a.produto.localeCompare(b.produto,'pt-BR'));
+    comprasComprAgregado=linhas;
+    if(!linhas.length){cont.innerHTML='<div class="empty"><i class="ti ti-checks"></i>Nenhum pendente nessa categoria hoje, em nenhuma loja vinculada.</div>';renderComprasCompradorFeitas();return;}
     cont.innerHTML=linhas.map((l,idx)=>`
-      <div class="data-card" style="flex-direction:column;align-items:stretch;">
-        <div style="display:flex;justify-content:space-between;align-items:center;">
-          <p style="font-size:14px;font-weight:600;">${emojis[l.categoria]||''} ${l.produto}</p>
-          <p style="font-size:15px;font-weight:700;color:var(--accent);">${l.total}</p>
+      <div style="border:1px solid var(--border);padding:.75rem 1rem;background:var(--bg2);border-radius:var(--radius-sm);margin-bottom:.625rem;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.375rem;">
+          <div>
+            <div style="font-size:14px;font-weight:700;">${l.produto}</div>
+            <div style="font-size:13px;color:var(--text2);margin-top:2px;">${l.total} ${l.tipo==='caixa'?'caixa':'unidade'}${l.total!==1?'s':''} previsto · ${l.origens.length} loja${l.origens.length!==1?'s':''}</div>
+          </div>
         </div>
-        <a href="#" onclick="event.preventDefault();toggleDetalheConsolidado(${idx})" style="font-size:11px;color:var(--text2);text-decoration:underline;margin-top:2px;">detalhes</a>
-        <div id="detalheConsolidado-${idx}" style="display:none;margin-top:.5rem;padding-top:.5rem;border-top:1px solid var(--border);">
-          ${Object.entries(l.porLoja).map(([lojaId,qtd])=>{
-            const loja=lojas.find(x=>x.id===parseInt(lojaId));
-            return `<div style="display:flex;justify-content:space-between;font-size:12px;color:var(--text2);padding:2px 0;"><span>${loja?loja.nome:'Loja '+lojaId}</span><span>${qtd}</span></div>`;
-          }).join('')}
+        <a href="#" onclick="event.preventDefault();toggleDetalheComprador(${idx})" style="font-size:11px;color:var(--text2);text-decoration:underline;">ver por loja</a>
+        <div id="detalheComprador-${idx}" style="display:none;margin:.5rem 0;padding:.5rem .625rem;background:var(--bg3);border-radius:var(--radius-sm);">
+          ${l.origens.map(o=>{const loja=lojas.find(x=>x.id===o.lojaId);return `<div style="display:flex;justify-content:space-between;font-size:12px;color:var(--text2);padding:2px 0;"><span>${loja?loja.nome:'Loja '+o.lojaId}</span><span>${o.qtd}</span></div>`;}).join('')}
         </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:.4rem;margin:.5rem 0 .4rem;">
+          <div>
+            <label style="font-size:10px;color:var(--text3);font-weight:600;text-transform:uppercase;letter-spacing:.04em;display:block;margin-bottom:2px;">Qtd comprada (total)</label>
+            <input type="number" step="1" min="0" value="${l.total}" id="cc-qtd-${idx}" style="width:100%;font-size:13px;padding:5px 8px;"/>
+          </div>
+          <div>
+            <label style="font-size:10px;color:var(--text3);font-weight:600;text-transform:uppercase;letter-spacing:.04em;display:block;margin-bottom:2px;">Valor cx / un</label>
+            <input type="number" step="0.01" min="0" placeholder="R$ 0,00" id="cc-val-${idx}" style="width:100%;font-size:13px;padding:5px 8px;"/>
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:.4rem;margin-bottom:.5rem;">
+          <div>
+            <label style="font-size:10px;color:var(--text3);font-weight:600;text-transform:uppercase;letter-spacing:.04em;display:block;margin-bottom:2px;">Fornecedor</label>
+            <input placeholder="Fornecedor" id="cc-forn-${idx}" style="width:100%;font-size:13px;padding:5px 8px;"/>
+          </div>
+          <div>
+            <label style="font-size:10px;color:var(--text3);font-weight:600;text-transform:uppercase;letter-spacing:.04em;display:block;margin-bottom:2px;">Pagamento</label>
+            <select id="cc-pag-${idx}" style="width:100%;font-size:13px;padding:5px 8px;">
+              <option value="PG">💵 Dinheiro</option>
+              <option value="PGT">📲 Transferência/Pix</option>
+              <option value="F">📒 Fiado</option>
+            </select>
+          </div>
+        </div>
+        <button class="btn-primary btn-w" onclick="confirmarCompraComprador(${idx})"><i class="ti ti-check"></i> Confirmar (distribui pra cada loja)</button>
       </div>`).join('');
+    renderComprasCompradorFeitas();
   }catch(e){cont.innerHTML='<div class="empty">Erro ao carregar.</div>';}
 }
-function toggleDetalheConsolidado(idx){
-  const d=document.getElementById('detalheConsolidado-'+idx);
+function toggleDetalheComprador(idx){
+  const d=document.getElementById('detalheComprador-'+idx);
   if(d)d.style.display=d.style.display==='none'?'block':'none';
 }
-function exportarConsolidadoPdf(){
-  if(typeof window.jspdf==='undefined'){showToast('A biblioteca de PDF ainda não carregou — espera um instante e tenta de novo.');return;}
-  const linhas=window._consolidadoData||[];
-  if(!linhas.length){showToast('Nada pra exportar nessa data.');return;}
+async function confirmarCompraComprador(idx){
+  const linha=comprasComprAgregado[idx];if(!linha)return;
+  const valorUnit=parseFloat(el('cc-val-'+idx).value)||0;
+  if(valorUnit<=0){showToast('Informe o valor antes de confirmar');return;}
+  const fornecedor=el('cc-forn-'+idx).value.trim()||'Sem fornecedor';
+  const pagamento=el('cc-pag-'+idx).value;
+  showToast('Confirmando e distribuindo pra cada loja…');
   try{
-    const {jsPDF}=window.jspdf;
-    const doc=new jsPDF();
-    doc.setFontSize(16);
-    doc.text('Hortiz — Consolidado de Pedidos',14,18);
-    doc.setFontSize(11);
-    doc.setTextColor(90);
-    doc.text(`Data: ${formatBR(currentDate)}`,14,26);
-    doc.setTextColor(0);
-    const emojisTxt={fruta:'Frutas',legume:'Legumes',verdura:'Verduras'};
-    const body=[];
-    linhas.forEach(l=>{
-      body.push([emojisTxt[l.categoria]||l.categoria,l.produto,String(l.total)]);
-      Object.entries(l.porLoja).forEach(([lojaId,qtd])=>{
-        const loja=lojas.find(x=>x.id===parseInt(lojaId));
-        body.push(['','   ↳ '+(loja?loja.nome:'Loja '+lojaId),String(qtd)]);
+    for(const origem of linha.origens){
+      await db.from('itens_pedido').update({status:'comprado'}).eq('id',origem.itemId);
+      await db.from('compras').insert({
+        loja_id:origem.lojaId,item_pedido_id:origem.itemId,data:currentDate,
+        produto:linha.produto,categoria:linha.categoria,qtd:origem.qtd,
+        valor_unit:valorUnit,fornecedor,pagamento
       });
-    });
-    doc.autoTable({
-      startY:34,
-      head:[['Categoria','Produto / Loja','Qtd']],
-      body,
-      styles:{fontSize:8},
-      headStyles:{fillColor:[96,165,250]}
-    });
-    doc.save(`consolidado-pedidos-${currentDate}.pdf`);
-    showToast('PDF gerado!');
-  }catch(e){showToast('Erro ao gerar PDF: '+e.message);}
+    }
+    showToast('Compra confirmada e distribuída pra '+linha.origens.length+' loja(s)!');
+    renderComprasComprador();
+  }catch(e){showToast('Erro: '+e.message);}
 }
+async function renderComprasCompradorFeitas(){
+  const cont=el('listaComprasCompradorFeitas');if(!cont)return;
+  try{
+    const idsLojas=lojas.map(l=>l.id);
+    if(!idsLojas.length){cont.innerHTML='';return;}
+    const {data,error}=await db.from('compras').select('*').in('loja_id',idsLojas).eq('data',currentDate);
+    if(error||!data||!data.length){cont.innerHTML='<div class="empty">Nada comprado ainda hoje.</div>';return;}
+    cont.innerHTML=data.map(c=>{
+      const loja=lojas.find(x=>x.id===c.loja_id);
+      return `<div class="data-card">
+        <div style="flex:1;min-width:0;">
+          <p style="font-size:14px;font-weight:600;">${c.produto} <span style="font-size:11px;color:var(--text3);font-weight:400;">— ${loja?loja.nome:'Loja '+c.loja_id}</span></p>
+          <p style="font-size:12px;color:var(--text2);">${c.qtd} × ${fmt(c.valor_unit)} · ${c.fornecedor||'—'}</p>
+        </div>
+        <p style="font-size:14px;font-weight:700;">${fmt(c.qtd*c.valor_unit)}</p>
+      </div>`;
+    }).join('');
+  }catch(e){cont.innerHTML='<div class="empty">Erro ao carregar.</div>';}
+}
+
 async function renderGerenciarProdutos(){
   const cont=el('listaGerenciarProdutos');if(!cont)return;
   cont.innerHTML='<p style="font-size:13px;color:var(--text3);padding:.5rem 0;">Carregando…</p>';
