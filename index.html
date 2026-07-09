@@ -728,6 +728,13 @@ button{font-family:inherit;font-size:14px;font-weight:600;cursor:pointer;border-
               <p style="font-size:11px;color:var(--text3);margin:0;">* Nome e CNPJ/CPF são obrigatórios — o CNPJ/CPF é exigido pelo Asaas pra gerar a cobrança da assinatura dessa loja.</p>
             </div>
           </div>
+          <div class="field-group" id="lojaCobrarDeWrap" style="display:none;">
+            <label>Cobrar assinatura de</label>
+            <div style="display:flex;gap:6px;">
+              <button type="button" class="cat-btn active" data-val="loja" onclick="selecionarCobrarDe('atual','loja')">Desta loja (CNPJ/CPF acima)</button>
+              <button type="button" class="cat-btn" data-val="dono" onclick="selecionarCobrarDe('atual','dono')">De mim (dono da conta)</button>
+            </div>
+          </div>
           <div style="display:flex;gap:.5rem;">
             <button class="btn-primary" onclick="salvarLoja()"><i class="ti ti-device-floppy"></i> Salvar</button>
             <button class="btn-ghost" onclick="cancelEditLoja()" id="btnCancelLoja" style="display:none;flex:none;">Cancelar</button>
@@ -1163,6 +1170,12 @@ button{font-family:inherit;font-size:14px;font-weight:600;cursor:pointer;border-
       <div class="card-label">Cor de destaque</div>
       <div class="color-swatches" id="colorSwatches"></div>
     </div>
+    <div class="settings-panel" id="meusDadosPanel" style="display:none;">
+      <div class="card-label">Meus dados</div>
+      <div class="field-group"><label>Meu CPF</label><input id="meuCpfInput" placeholder="000.000.000-00"/></div>
+      <p style="font-size:11px;color:var(--text3);margin:0 0 .625rem;">Usado quando você escolher, no cadastro de uma loja, direcionar a cobrança da assinatura pra você em vez do CNPJ/CPF daquela loja específica.</p>
+      <button class="btn-primary btn-w" onclick="salvarMeuCpf()"><i class="ti ti-device-floppy"></i> Salvar CPF</button>
+    </div>
   </div>
 
 </div>
@@ -1189,6 +1202,13 @@ button{font-family:inherit;font-size:14px;font-weight:600;cursor:pointer;border-
         </div>
         <div class="field-group"><label>Telefone</label><input id="novaLojaTel" placeholder="(11) 99999-9999"/></div>
         <p style="font-size:11px;color:var(--text3);margin:0;">* Nome e CNPJ/CPF são obrigatórios — o CNPJ/CPF é exigido pelo Asaas pra gerar a cobrança da assinatura dessa loja.</p>
+      </div>
+    </div>
+    <div class="field-group" id="novaLojaCobrarDeWrap" style="display:none;">
+      <label>Cobrar assinatura de</label>
+      <div style="display:flex;gap:6px;">
+        <button type="button" class="cat-btn active" data-val="loja" onclick="selecionarCobrarDe('nova','loja')">Desta loja (CNPJ/CPF acima)</button>
+        <button type="button" class="cat-btn" data-val="dono" onclick="selecionarCobrarDe('nova','dono')">De mim (dono da conta)</button>
       </div>
     </div>
     <div style="display:flex;gap:.5rem;">
@@ -1438,7 +1458,24 @@ function setAccent(i){
   // também ajusta light accent-bg para versão mais clara
   showToast(`Cor "${c.name}" aplicada!`);
 }
-function openSettings(){el('settingsModal').classList.add('open');}
+function openSettings(){
+  el('settingsModal').classList.add('open');
+  const painel=el('meusDadosPanel');
+  if(painel){
+    const souDono=currentUser&&currentUser.role==='owner';
+    painel.style.display=souDono?'':'none';
+    if(souDono)el('meuCpfInput').value=currentUser.cpf||'';
+  }
+}
+async function salvarMeuCpf(){
+  const cpf=el('meuCpfInput').value.trim();
+  try{
+    const {error}=await db.from('perfis').update({cpf:cpf||null}).eq('id',currentUser.id);
+    if(error){showToast('Erro ao salvar CPF: '+error.message);return;}
+    currentUser.cpf=cpf;
+    showToast('CPF salvo!');
+  }catch(e){showToast('Erro ao salvar CPF: '+e.message);}
+}
 function closeSettings(){el('settingsModal').classList.remove('open');}
 
 /* ── LOGIN (Supabase Auth real) ── */
@@ -1598,12 +1635,13 @@ async function carregarPerfilEEntrar(userId){
     email: perfil.email,
     role: perfil.role,
     lojaId: perfil.loja_id,
-    isAdmin: perfil.is_admin
+    isAdmin: perfil.is_admin,
+    cpf: perfil.cpf
   };
   if(perfil.lojas){
     // garante que a loja do usuário está na lista local
     const idx = lojas.findIndex(l=>l.id===perfil.lojas.id);
-    const lojaObj = {id:perfil.lojas.id,nome:perfil.lojas.nome,cidade:perfil.lojas.cidade||'',logo:perfil.lojas.logo||'',cnpj:perfil.lojas.cnpj||'',tel:perfil.lojas.tel||'',endereco:perfil.lojas.endereco||''};
+    const lojaObj = {id:perfil.lojas.id,nome:perfil.lojas.nome,cidade:perfil.lojas.cidade||'',logo:perfil.lojas.logo||'',cnpj:perfil.lojas.cnpj||'',tel:perfil.lojas.tel||'',endereco:perfil.lojas.endereco||'',cobrancaPara:perfil.lojas.cobranca_para||'loja'};
     if(idx===-1) lojas.push(lojaObj); else lojas[idx]=lojaObj;
   }
   currentLojaId = perfil.loja_id;
@@ -1654,7 +1692,7 @@ async function carregarMinhasLojas(){
     if(error||!data)return;
     data.filter(m=>m.lojas&&m.lojas.ativa!==false).forEach(m=>{
       const l=m.lojas;
-      const lojaObj={id:l.id,nome:l.nome,cidade:l.cidade||'',logo:l.logo||'',cnpj:l.cnpj||'',tel:l.tel||'',endereco:l.endereco||''};
+      const lojaObj={id:l.id,nome:l.nome,cidade:l.cidade||'',logo:l.logo||'',cnpj:l.cnpj||'',tel:l.tel||'',endereco:l.endereco||'',cobrancaPara:l.cobranca_para||'loja'};
       const idx=lojas.findIndex(x=>x.id===l.id);
       if(idx===-1) lojas.push(lojaObj); else lojas[idx]=lojaObj;
     });
@@ -2869,6 +2907,12 @@ function loadLojaForm(id){
   el('lojaNome').value=loja.nome;el('lojaEndereco').value=loja.endereco;el('lojaCidade').value=loja.cidade;el('lojaCnpj').value=loja.cnpj;el('lojaTel').value=loja.tel;
   if(loja.logo){el('logoPreview').src=loja.logo;el('logoPreview').style.display='';el('logoIcon').style.display='none';}
   else{el('logoPreview').style.display='none';el('logoIcon').style.display='';}
+  const wrap=el('lojaCobrarDeWrap');
+  if(wrap){
+    wrap.style.display=(currentUser&&currentUser.role==='owner')?'':'none';
+    cobrarDeLojaAtual=loja.cobrancaPara||'loja';
+    document.querySelectorAll('#lojaCobrarDeWrap .cat-btn').forEach(b=>b.classList.toggle('active',b.dataset.val===cobrarDeLojaAtual));
+  }
 }
 async function salvarLoja(){
   const targetId=editingLojaId||currentLojaId;
@@ -2882,6 +2926,7 @@ async function salvarLoja(){
   loja.cidade=el('lojaCidade').value.trim()||loja.cidade;
   loja.cnpj=cnpjInput;
   loja.tel=el('lojaTel').value.trim();
+  loja.cobrancaPara=cobrarDeLojaAtual;
   if(el('logoPreview').style.display!=='none')loja.logo=el('logoPreview').src;
   // Sincroniza com Supabase
   try{
@@ -2892,7 +2937,8 @@ async function salvarLoja(){
       cnpj: loja.cnpj||null,
       tel: loja.tel||null,
       logo: loja.logo||null,
-      cor_destaque: loja.cor||'#60a5fa'
+      cor_destaque: loja.cor||'#60a5fa',
+      cobranca_para: loja.cobrancaPara
     }).eq('id', targetId);
   }catch(e){ /* silencioso — dados já atualizados localmente */ }
   editingLojaId=null;el('btnCancelLoja').style.display='none';el('lojaFormTitle').textContent='Cadastro da Loja';
@@ -2920,6 +2966,20 @@ async function excluirLoja(id){
   else{renderLojas();}
   showToast('Loja excluída — dados preservados, acesso bloqueado.');
 }
+let cobrarDeNovaLoja='loja',cobrarDeLojaAtual='loja';
+function selecionarCobrarDe(contexto,valor){
+  if(valor==='dono'&&!(currentUser&&currentUser.cpf)){
+    showToast('Antes, salve seu CPF em Configurações (ícone de engrenagem) pra poder direcionar a cobrança pra você.');
+    return;
+  }
+  if(contexto==='nova'){
+    cobrarDeNovaLoja=valor;
+    document.querySelectorAll('#novaLojaCobrarDeWrap .cat-btn').forEach(b=>b.classList.toggle('active',b.dataset.val===valor));
+  } else {
+    cobrarDeLojaAtual=valor;
+    document.querySelectorAll('#lojaCobrarDeWrap .cat-btn').forEach(b=>b.classList.toggle('active',b.dataset.val===valor));
+  }
+}
 function previewLogoNovaLoja(inp){
   const f=inp.files[0];if(!f)return;
   const r=new FileReader();r.onload=e=>{el('novaLojaLogoPreview').src=e.target.result;el('novaLojaLogoPreview').style.display='';el('novaLojaLogoIcon').style.display='none';};r.readAsDataURL(f);
@@ -2934,6 +2994,12 @@ function addNovaLoja(){
   el('novaLojaEndereco').value='';el('novaLojaCidade').value='';el('novaLojaCnpj').value='';el('novaLojaTel').value='';
   el('novaLojaLogoPreview').style.display='none';el('novaLojaLogoIcon').style.display='';
   el('novaLojaLogoInput').value='';
+  cobrarDeNovaLoja='loja';
+  const wrap=el('novaLojaCobrarDeWrap');
+  if(wrap){
+    wrap.style.display=(currentUser&&currentUser.role==='owner')?'':'none';
+    document.querySelectorAll('#novaLojaCobrarDeWrap .cat-btn').forEach(b=>b.classList.toggle('active',b.dataset.val==='loja'));
+  }
   el('novaLojaModal').classList.add('open');
   setTimeout(()=>el('novaLojaNome').focus(),100);
 }
@@ -2950,10 +3016,10 @@ async function criarNovaLojaSubmit(){
   showToast('Criando loja…');
   try{
     const {data:novaLoja,error}=await db.from('lojas').insert({
-      nome,endereco:endereco||null,cidade:cidade||null,cnpj:cnpj||null,tel:tel||null,logo:logo||null
+      nome,endereco:endereco||null,cidade:cidade||null,cnpj:cnpj||null,tel:tel||null,logo:logo||null,cobranca_para:cobrarDeNovaLoja
     }).select().single();
     if(error){showToast('Erro ao criar loja: '+error.message);return;}
-    const lojaObj={id:novaLoja.id,nome:novaLoja.nome,cidade:cidade,logo:logo,cnpj:cnpj,tel:tel,endereco:endereco};
+    const lojaObj={id:novaLoja.id,nome:novaLoja.nome,cidade:cidade,logo:logo,cnpj:cnpj,tel:tel,endereco:endereco,cobrancaPara:cobrarDeNovaLoja};
     lojas.push(lojaObj);
     fecharNovaLojaModal();
     renderLojas();
@@ -2971,7 +3037,7 @@ function renderLojas(){
         <div style="width:36px;height:36px;border-radius:8px;overflow:hidden;background:var(--bg2);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
           ${l.logo?`<img src="${l.logo}" style="width:100%;height:100%;object-fit:cover;">`:`<i class="ti ti-building-store" style="color:var(--text3);"></i>`}
         </div>
-        <div style="min-width:0;"><p style="font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${l.nome}</p><p style="font-size:12px;color:var(--text2);">${l.cidade||'—'} ${l.id===currentLojaId?'· <strong style=color:var(--accent)>Selecionada</strong>':''}</p></div>
+        <div style="min-width:0;"><p style="font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${l.nome}</p><p style="font-size:12px;color:var(--text2);">${l.cidade||'—'} ${l.id===currentLojaId?'· <strong style=color:var(--accent)>Selecionada</strong>':''} ${l.cobrancaPara==='dono'?'· <span style="color:var(--amber);">Cobrança: você</span>':''}</p></div>
       </div>
       <div class="actions">
         <button class="btn-ghost btn-sm" onclick="editLoja(${l.id})" title="Editar"><i class="ti ti-edit"></i></button>
