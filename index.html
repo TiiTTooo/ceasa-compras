@@ -742,7 +742,7 @@ button{font-family:inherit;font-size:14px;font-weight:600;cursor:pointer;border-
         </div>
         <div class="sh"><i class="ti ti-building-store"></i> Minhas Lojas</div>
         <div id="listaLojas"></div>
-        <button class="btn-ghost btn-w" onclick="addNovaLoja()" style="margin-top:.5rem;"><i class="ti ti-plus"></i> Adicionar nova loja</button>
+        <button class="btn-primary btn-w" onclick="addNovaLoja()" style="margin-top:.5rem;"><i class="ti ti-plus"></i> Adicionar nova loja</button>
         <div style="background:var(--amber-bg);border:1px solid var(--amber);border-radius:var(--radius-sm);padding:.5rem .75rem;margin-top:.5rem;display:flex;align-items:center;justify-content:center;gap:6px;">
           <i class="ti ti-alert-triangle" style="color:var(--amber);font-size:15px;flex-shrink:0;"></i>
           <span style="font-size:13px;color:var(--amber);font-weight:600;">Cada loja criada gera uma cobrança mensal própria (trial de 3 dias primeiro)</span>
@@ -1641,7 +1641,7 @@ async function carregarPerfilEEntrar(userId){
   if(perfil.lojas){
     // garante que a loja do usuário está na lista local
     const idx = lojas.findIndex(l=>l.id===perfil.lojas.id);
-    const lojaObj = {id:perfil.lojas.id,nome:perfil.lojas.nome,cidade:perfil.lojas.cidade||'',logo:perfil.lojas.logo||'',cnpj:perfil.lojas.cnpj||'',tel:perfil.lojas.tel||'',endereco:perfil.lojas.endereco||'',cobrancaPara:perfil.lojas.cobranca_para||'loja'};
+    const lojaObj = {id:perfil.lojas.id,nome:perfil.lojas.nome,cidade:perfil.lojas.cidade||'',logo:perfil.lojas.logo||'',cnpj:perfil.lojas.cnpj||'',tel:perfil.lojas.tel||'',endereco:perfil.lojas.endereco||'',cobrancaPara:perfil.lojas.cobranca_para||'loja',ordem:perfil.lojas.ordem||0};
     if(idx===-1) lojas.push(lojaObj); else lojas[idx]=lojaObj;
   }
   currentLojaId = perfil.loja_id;
@@ -1692,7 +1692,7 @@ async function carregarMinhasLojas(){
     if(error||!data)return;
     data.filter(m=>m.lojas&&m.lojas.ativa!==false).forEach(m=>{
       const l=m.lojas;
-      const lojaObj={id:l.id,nome:l.nome,cidade:l.cidade||'',logo:l.logo||'',cnpj:l.cnpj||'',tel:l.tel||'',endereco:l.endereco||'',cobrancaPara:l.cobranca_para||'loja'};
+      const lojaObj={id:l.id,nome:l.nome,cidade:l.cidade||'',logo:l.logo||'',cnpj:l.cnpj||'',tel:l.tel||'',endereco:l.endereco||'',cobrancaPara:l.cobranca_para||'loja',ordem:l.ordem||0};
       const idx=lojas.findIndex(x=>x.id===l.id);
       if(idx===-1) lojas.push(lojaObj); else lojas[idx]=lojaObj;
     });
@@ -1743,7 +1743,7 @@ function openStoreModal(){
 }
 function closeStoreModal(){el('storeModal').classList.remove('open');}
 async function selectLoja(id){
-  if(id===currentLojaId){closeStoreModal();switchTab('home');return;}
+  if(id===currentLojaId){closeStoreModal();return;}
   showToast('Trocando de loja…');
   try{
     const {error}=await db.from('perfis').update({loja_id:id}).eq('id',currentUser.id);
@@ -1751,7 +1751,6 @@ async function selectLoja(id){
   }catch(e){showToast('Erro ao trocar de loja: '+e.message);return;}
   currentLojaId=id;
   closeStoreModal();
-  switchTab('home');
   await carregarDadosDaLoja();
   init();
   await checkSubscription();
@@ -1872,6 +1871,22 @@ function atualizarLabelsPreco(){
 // sub: {status:'active'|'expired'|'trial', expiresAt: Date, trialDaysLeft: number}
 let subscription={status:'trial', expiresAt: new Date(Date.now()+3*86400000), trialDaysLeft:3, valorMensal:250};
 let todasLojas=[]; // cache master
+async function moverLojaMaster(id,direcao){
+  const ordenadas=[...todasLojas].sort((a,b)=>(a.ordem||0)-(b.ordem||0));
+  const idx=ordenadas.findIndex(l=>l.id===id);
+  const outroIdx=idx+direcao;
+  if(idx===-1||outroIdx<0||outroIdx>=ordenadas.length)return;
+  const a=ordenadas[idx],b=ordenadas[outroIdx];
+  const ordemA=a.ordem||0,ordemB=b.ordem||0;
+  try{
+    const {error:e1}=await db.from('lojas').update({ordem:ordemB}).eq('id',a.id);
+    if(e1){showToast('Erro ao reordenar: '+e1.message);return;}
+    const {error:e2}=await db.from('lojas').update({ordem:ordemA}).eq('id',b.id);
+    if(e2){await db.from('lojas').update({ordem:ordemA}).eq('id',a.id);showToast('Erro ao reordenar: '+e2.message);return;}
+    a.ordem=ordemB;b.ordem=ordemA;
+    renderMaster();
+  }catch(e){showToast('Erro ao reordenar: '+e.message);}
+}
 
 let acessoOperacionalBloqueado=false;
 async function checkSubscription(){
@@ -2638,6 +2653,22 @@ function selecionarFornCat(cat){
   fornCadCatSelecionada=cat;
   document.querySelectorAll('#fornCadCatBtns .cat-btn').forEach(b=>b.classList.toggle('active',b.dataset.cat===cat));
 }
+async function moverFornecedor(id,cat,direcao){
+  const lista=[...(fornCustom[cat]||[])].sort((a,b)=>(a.ordem||0)-(b.ordem||0)||a.nome.localeCompare(b.nome,'pt-BR',{sensitivity:'base'}));
+  const idx=lista.findIndex(f=>f.id===id);
+  const outroIdx=idx+direcao;
+  if(idx===-1||outroIdx<0||outroIdx>=lista.length)return;
+  const a=lista[idx],b=lista[outroIdx];
+  const ordemA=a.ordem||0,ordemB=b.ordem||0;
+  try{
+    const {error:e1}=await db.from('fornecedores').update({ordem:ordemB}).eq('id',a.id);
+    if(e1){showToast('Erro ao reordenar: '+e1.message);return;}
+    const {error:e2}=await db.from('fornecedores').update({ordem:ordemA}).eq('id',b.id);
+    if(e2){await db.from('fornecedores').update({ordem:ordemA}).eq('id',a.id);showToast('Erro ao reordenar: '+e2.message);return;}
+    a.ordem=ordemB;b.ordem=ordemA;
+    renderFornecedoresCadastro();
+  }catch(e){showToast('Erro ao reordenar: '+e.message);}
+}
 async function salvarFornecedor(){
   const nome=el('fornNomeInput').value.trim();
   const cat=fornCadCatSelecionada;
@@ -2659,14 +2690,14 @@ async function salvarFornecedor(){
   } else {
     const todas=getAllFornByCat(cat);
     if(todas.find(x=>x.toLowerCase()===nome.toLowerCase())){showToast('Fornecedor já cadastrado nessa categoria');return;}
-    const novo={id:nextId++,nome};
+    const ordemNova=(fornCustom[cat]&&fornCustom[cat].length)?Math.max(...fornCustom[cat].map(x=>x.ordem||0))+1:1;
+    const novo={id:nextId++,nome,ordem:ordemNova};
     if(!fornCustom[cat])fornCustom[cat]=[];
     fornCustom[cat].push(novo);
-    fornCustom[cat].sort((a,b)=>a.nome.localeCompare(b.nome,'pt-BR',{sensitivity:'base'}));
     showToast('Fornecedor "'+nome+'" adicionado!');
     try{
       const {data,error}=await db.from('fornecedores').insert({
-        loja_id:currentLojaId,nome,categoria:cat,padrao:false
+        loja_id:currentLojaId,nome,categoria:cat,padrao:false,ordem:ordemNova
       }).select().single();
       if(!error&&data){const f=fornCustom[cat].find(x=>x===novo);if(f)f.id=data.id;}
       else if(error)showToast('Erro ao salvar fornecedor no banco: '+error.message);
@@ -2716,7 +2747,7 @@ function renderFornecedoresCadastro(){
   const CAT_LIST=listaCatComFallback().map(c=>({k:c.chave,emoji:c.emoji,label:c.nome}));
   let html='';
   CAT_LIST.forEach(({k,emoji,label})=>{
-    const lista=[...(fornCustom[k]||[])].sort((a,b)=>a.nome.localeCompare(b.nome,'pt-BR',{sensitivity:'base'}));
+    const lista=[...(fornCustom[k]||[])].sort((a,b)=>(a.ordem||0)-(b.ordem||0)||a.nome.localeCompare(b.nome,'pt-BR',{sensitivity:'base'}));
     html+=`<div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;margin-bottom:.75rem;">
       <div style="padding:.625rem 1rem;background:var(--bg3);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;">
         <span style="font-size:14px;font-weight:700;">${emoji} ${label}</span>
@@ -2726,14 +2757,16 @@ function renderFornecedoresCadastro(){
         <thead>
           <tr style="border-bottom:1px solid var(--border);">
             <th style="text-align:left;padding:7px 12px;font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.04em;">Nome</th>
-            <th style="padding:7px 12px;width:72px;"></th>
+            <th style="padding:7px 12px;width:104px;"></th>
           </tr>
         </thead>
         <tbody>
-          ${lista.map(f=>`<tr style="border-bottom:1px solid var(--border);">
+          ${lista.map((f,i)=>`<tr style="border-bottom:1px solid var(--border);">
             <td style="padding:8px 12px;font-size:13px;">${f.nome}</td>
             <td style="padding:8px 12px;">
-              <div style="display:flex;gap:6px;justify-content:flex-end;">
+              <div style="display:flex;gap:4px;justify-content:flex-end;align-items:center;">
+                <button class="btn-icon" style="font-size:14px;padding:2px;" ${i===0?'disabled':''} onclick="moverFornecedor(${f.id},'${k}',-1)" title="Mover pra cima"><i class="ti ti-chevron-up"></i></button>
+                <button class="btn-icon" style="font-size:14px;padding:2px;" ${i===lista.length-1?'disabled':''} onclick="moverFornecedor(${f.id},'${k}',1)" title="Mover pra baixo"><i class="ti ti-chevron-down"></i></button>
                 <button class="btn-icon" onclick="editForn(${f.id},'${k}')" style="font-size:18px;" title="Editar"><i class="ti ti-edit"></i></button>
                 <button class="btn-icon" onclick="removeForn(${f.id},'${k}')" style="font-size:18px;color:var(--red);" title="Remover"><i class="ti ti-trash"></i></button>
               </div>
@@ -3013,13 +3046,14 @@ async function criarNovaLojaSubmit(){
   const cidade=el('novaLojaCidade').value.trim();
   const tel=el('novaLojaTel').value.trim();
   const logo=el('novaLojaLogoPreview').style.display!=='none'?el('novaLojaLogoPreview').src:'';
+  const ordemNova=lojas.length?Math.max(...lojas.map(l=>l.ordem||0))+1:1;
   showToast('Criando loja…');
   try{
     const {data:novaLoja,error}=await db.from('lojas').insert({
-      nome,endereco:endereco||null,cidade:cidade||null,cnpj:cnpj||null,tel:tel||null,logo:logo||null,cobranca_para:cobrarDeNovaLoja
+      nome,endereco:endereco||null,cidade:cidade||null,cnpj:cnpj||null,tel:tel||null,logo:logo||null,cobranca_para:cobrarDeNovaLoja,ordem:ordemNova
     }).select().single();
     if(error){showToast('Erro ao criar loja: '+error.message);return;}
-    const lojaObj={id:novaLoja.id,nome:novaLoja.nome,cidade:cidade,logo:logo,cnpj:cnpj,tel:tel,endereco:endereco,cobrancaPara:cobrarDeNovaLoja};
+    const lojaObj={id:novaLoja.id,nome:novaLoja.nome,cidade:cidade,logo:logo,cnpj:cnpj,tel:tel,endereco:endereco,cobrancaPara:cobrarDeNovaLoja,ordem:ordemNova};
     lojas.push(lojaObj);
     fecharNovaLojaModal();
     renderLojas();
@@ -3031,8 +3065,13 @@ async function criarNovaLojaSubmit(){
   }catch(e){showToast('Erro ao criar loja: '+e.message);}
 }
 function renderLojas(){
-  el('listaLojas').innerHTML=lojas.map(l=>`
+  const ordenadas=[...lojas].sort((a,b)=>(a.ordem||0)-(b.ordem||0));
+  el('listaLojas').innerHTML=ordenadas.map((l,i)=>`
     <div class="data-card">
+      <div style="display:flex;flex-direction:column;gap:2px;">
+        <button class="btn-ghost btn-sm" style="padding:2px 6px;" ${i===0?'disabled':''} onclick="moverLoja(${l.id},-1)" title="Mover pra cima"><i class="ti ti-chevron-up"></i></button>
+        <button class="btn-ghost btn-sm" style="padding:2px 6px;" ${i===ordenadas.length-1?'disabled':''} onclick="moverLoja(${l.id},1)" title="Mover pra baixo"><i class="ti ti-chevron-down"></i></button>
+      </div>
       <div style="display:flex;align-items:center;gap:10px;flex:1;min-width:0;">
         <div style="width:36px;height:36px;border-radius:8px;overflow:hidden;background:var(--bg2);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
           ${l.logo?`<img src="${l.logo}" style="width:100%;height:100%;object-fit:cover;">`:`<i class="ti ti-building-store" style="color:var(--text3);"></i>`}
@@ -3045,6 +3084,22 @@ function renderLojas(){
         <button class="btn-danger-soft btn-sm" onclick="excluirLoja(${l.id})" title="Excluir loja permanentemente"><i class="ti ti-trash"></i></button>
       </div>
     </div>`).join('');
+}
+async function moverLoja(id,direcao){
+  const ordenadas=[...lojas].sort((a,b)=>(a.ordem||0)-(b.ordem||0));
+  const idx=ordenadas.findIndex(l=>l.id===id);
+  const outroIdx=idx+direcao;
+  if(idx===-1||outroIdx<0||outroIdx>=ordenadas.length)return;
+  const a=ordenadas[idx],b=ordenadas[outroIdx];
+  const ordemA=a.ordem||0,ordemB=b.ordem||0;
+  try{
+    const {error:e1}=await db.from('lojas').update({ordem:ordemB}).eq('id',a.id);
+    if(e1){showToast('Erro ao reordenar: '+e1.message);return;}
+    const {error:e2}=await db.from('lojas').update({ordem:ordemA}).eq('id',b.id);
+    if(e2){await db.from('lojas').update({ordem:ordemA}).eq('id',a.id);showToast('Erro ao reordenar: '+e2.message);return;}
+    a.ordem=ordemB;b.ordem=ordemA;
+    renderLojas();
+  }catch(e){showToast('Erro ao reordenar: '+e.message);}
 }
 
 /* ── USUÁRIOS (convites de gerente, vinculados a 1 loja) ── */
@@ -3109,11 +3164,12 @@ async function renderUsuarios(){
   try{
     const lojaIds=lojas.map(l=>l.id);
     const [{data:gerentes},{data:convites}]=await Promise.all([
-      lojaIds.length?db.from('perfis').select('*').in('loja_id',lojaIds).in('role',['manager','pedidos','comprador']):Promise.resolve({data:[]}),
+      lojaIds.length?db.from('perfis').select('*').in('loja_id',lojaIds).in('role',['manager','pedidos','comprador']).order('ordem'):Promise.resolve({data:[]}),
       db.from('convites_usuario').select('*, lojas(nome)').eq('criado_por',currentUser.id).order('created_at',{ascending:false})
     ]);
+    gerentesCache=gerentes||[];
     let html='';
-    (gerentes||[]).forEach(g=>{
+    gerentesCache.forEach((g,i)=>{
       const lojaNome=(lojas.find(l=>l.id===g.loja_id)||{}).nome||'—';
       const nomeEscapado=(g.nome||'').replace(/'/g,"\\'");
       const opcoesLoja=lojas.map(l=>`<option value="${l.id}"${l.id===g.loja_id?' selected':''}>${l.nome}</option>`).join('');
@@ -3121,6 +3177,10 @@ async function renderUsuarios(){
       const ehComprador=g.role==='comprador';
       const rotulo=ehComprador?'Comprador':ehPedidos?'Apenas Pedidos':'Gerente';
       html+=`<div class="data-card">
+        <div style="display:flex;flex-direction:column;gap:2px;">
+          <button class="btn-ghost btn-sm" style="padding:2px 6px;" ${i===0?'disabled':''} onclick="moverGerente('${g.id}',-1)" title="Mover pra cima"><i class="ti ti-chevron-up"></i></button>
+          <button class="btn-ghost btn-sm" style="padding:2px 6px;" ${i===gerentesCache.length-1?'disabled':''} onclick="moverGerente('${g.id}',1)" title="Mover pra baixo"><i class="ti ti-chevron-down"></i></button>
+        </div>
         <div style="flex:1;min-width:0;">
           <p style="font-size:14px;font-weight:600;">${g.nome}</p>
           <p style="font-size:12px;color:var(--text2);">${g.email}</p>
@@ -3145,6 +3205,22 @@ async function renderUsuarios(){
     });
     cont.innerHTML=html||'<div class="empty">Nenhuma pessoa na equipe ou convite ainda.</div>';
   }catch(e){cont.innerHTML='<div class="empty">Erro ao carregar equipe.</div>';}
+}
+let gerentesCache=[];
+async function moverGerente(id,direcao){
+  const idx=gerentesCache.findIndex(g=>g.id===id);
+  const outroIdx=idx+direcao;
+  if(idx===-1||outroIdx<0||outroIdx>=gerentesCache.length)return;
+  const a=gerentesCache[idx],b=gerentesCache[outroIdx];
+  const ordemA=a.ordem||0,ordemB=b.ordem||0;
+  try{
+    const {error:e1}=await db.from('perfis').update({ordem:ordemB}).eq('id',a.id);
+    if(e1){showToast('Erro ao reordenar: '+e1.message);return;}
+    const {error:e2}=await db.from('perfis').update({ordem:ordemA}).eq('id',b.id);
+    if(e2){await db.from('perfis').update({ordem:ordemA}).eq('id',a.id);showToast('Erro ao reordenar: '+e2.message);return;}
+    a.ordem=ordemB;b.ordem=ordemA;
+    renderUsuarios();
+  }catch(e){showToast('Erro ao reordenar: '+e.message);}
 }
 
 function toggleEditGerente(perfilId){
@@ -3202,10 +3278,15 @@ async function renderTiposDespesa(){
   const cont=el('listaTiposDespesa');if(!cont)return;
   cont.innerHTML='<p style="font-size:13px;color:var(--text3);padding:.5rem 0;">Carregando…</p>';
   try{
-    const {data,error}=await db.from('despesas_tipos').select('*').eq('loja_id',currentLojaId).order('nome');
+    const {data,error}=await db.from('despesas_tipos').select('*').eq('loja_id',currentLojaId).order('ordem').order('nome');
     if(error){cont.innerHTML='<div class="empty">Erro ao carregar.</div>';return;}
     if(!data||!data.length){cont.innerHTML='<div class="empty"><i class="ti ti-receipt"></i>Nenhum tipo de despesa cadastrado.</div>';return;}
-    cont.innerHTML=data.map(t=>`<div class="data-card"${t.ativo?'':' style="opacity:.55;"'}>
+    tiposDespesaCache=data;
+    cont.innerHTML=data.map((t,i)=>`<div class="data-card"${t.ativo?'':' style="opacity:.55;"'}>
+      <div style="display:flex;flex-direction:column;gap:2px;">
+        <button class="btn-ghost btn-sm" style="padding:2px 6px;" ${i===0?'disabled':''} onclick="moverTipoDespesa(${t.id},-1)" title="Mover pra cima"><i class="ti ti-chevron-up"></i></button>
+        <button class="btn-ghost btn-sm" style="padding:2px 6px;" ${i===data.length-1?'disabled':''} onclick="moverTipoDespesa(${t.id},1)" title="Mover pra baixo"><i class="ti ti-chevron-down"></i></button>
+      </div>
       <div style="flex:1;min-width:0;">
         <p style="font-size:14px;font-weight:600;">${t.nome}</p>
         <p style="font-size:12px;color:var(--text2);">${t.ativo?'Ativo':'Desativado'}</p>
@@ -3215,6 +3296,23 @@ async function renderTiposDespesa(){
       <button class="btn-danger-soft btn-sm" onclick="excluirTipoDespesa(${t.id},'${t.nome.replace(/'/g,"\\'")}')" title="Excluir"><i class="ti ti-trash"></i></button>
     </div>`).join('');
   }catch(e){cont.innerHTML='<div class="empty">Erro ao carregar.</div>';}
+}
+let tiposDespesaCache=[];
+async function moverTipoDespesa(id,direcao){
+  const lista=[...tiposDespesaCache].sort((a,b)=>(a.ordem-b.ordem)||a.nome.localeCompare(b.nome,'pt-BR'));
+  const idx=lista.findIndex(t=>t.id===id);
+  const outroIdx=idx+direcao;
+  if(idx===-1||outroIdx<0||outroIdx>=lista.length)return;
+  const a=lista[idx],b=lista[outroIdx];
+  const ordemA=a.ordem||0,ordemB=b.ordem||0;
+  try{
+    const {error:e1}=await db.from('despesas_tipos').update({ordem:ordemB}).eq('id',a.id);
+    if(e1){showToast('Erro ao reordenar: '+e1.message);return;}
+    const {error:e2}=await db.from('despesas_tipos').update({ordem:ordemA}).eq('id',b.id);
+    if(e2){await db.from('despesas_tipos').update({ordem:ordemA}).eq('id',a.id);showToast('Erro ao reordenar: '+e2.message);return;}
+    a.ordem=ordemB;b.ordem=ordemA;
+    renderTiposDespesa();
+  }catch(e){showToast('Erro ao reordenar: '+e.message);}
 }
 function editTipoDespesa(id,nome){
   editingTipoDespesaId=id;
@@ -3368,17 +3466,21 @@ async function moverCategoria(id,direcao){
   const outroIdx=idx+direcao;
   if(idx===-1||outroIdx<0||outroIdx>=ordenadas.length)return;
   const a=ordenadas[idx],b=ordenadas[outroIdx];
+  const ordemA=a.ordem,ordemB=b.ordem;
   try{
-    const {error:e1}=await db.from('categorias').update({ordem:b.ordem}).eq('id',a.id);
+    const {error:e1}=await db.from('categorias').update({ordem:ordemB}).eq('id',a.id);
     if(e1){showToast('Erro ao reordenar: '+e1.message);return;}
-    const {error:e2}=await db.from('categorias').update({ordem:a.ordem}).eq('id',b.id);
+    const {error:e2}=await db.from('categorias').update({ordem:ordemA}).eq('id',b.id);
     if(e2){
       // desfaz a primeira mudança pra não deixar as duas categorias com o mesmo número de ordem
-      await db.from('categorias').update({ordem:a.ordem}).eq('id',a.id);
+      await db.from('categorias').update({ordem:ordemA}).eq('id',a.id);
       showToast('Erro ao reordenar: '+e2.message);
       return;
     }
-    await recarregarListasLoja();
+    // atualiza local na hora, sem esperar um reload completo
+    a.ordem=ordemB;b.ordem=ordemA;
+    renderCategoriasCadastro();
+    renderTodosSeletoresCategoria();
   }catch(e){showToast('Erro ao reordenar: '+e.message);}
 }
 
@@ -3731,7 +3833,8 @@ async function renderMaster(){
   todasLojas=data;
   const busca=(el('masterBusca').value||'').toLowerCase();
   const filtroStatus=el('masterFiltroStatus').value;
-  const filtradas=data.filter(l=>{
+  const podeReordenarMaster=!busca&&!filtroStatus;
+  const filtradas=[...data].sort((a,b)=>(a.ordem||0)-(b.ordem||0)).filter(l=>{
     const sub=l.assinaturas&&l.assinaturas[0];
     const status=sub?sub.status:'sem_assinatura';
     const nomeOk=!busca||l.nome.toLowerCase().includes(busca);
@@ -3756,7 +3859,7 @@ async function renderMaster(){
 
   if(!filtradas.length){el('masterLista').innerHTML='<div class="empty">Nenhuma loja encontrada.</div>';return;}
 
-  el('masterLista').innerHTML=filtradas.map(l=>{
+  el('masterLista').innerHTML=filtradas.map((l,i)=>{
     const sub=l.assinaturas&&l.assinaturas[0];
     const status=sub?sub.status:'sem_assinatura';
     const statusLabel={trial:'⏳ Trial',ativa:'✅ Ativa',vencida:'🔴 Vencida',cancelada:'⚫ Cancelada',sem_assinatura:'⚪ Sem assinatura'};
@@ -3766,9 +3869,15 @@ async function renderMaster(){
     const trialFim=sub?sub.trial_fim:'—';
     return `<div style="background:var(--bg2);border:1px solid ${l.ativa===false?'var(--red)':'var(--border)'};border-radius:var(--radius);padding:1rem;margin-bottom:.625rem;${l.ativa===false?'opacity:.75;':''}">
       <div style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:.5rem;margin-bottom:.75rem;">
-        <div>
-          <div style="font-size:15px;font-weight:700;">${l.nome}${l.ativa===false?' <span style="font-size:11px;font-weight:700;color:var(--red);background:var(--red-bg);padding:2px 8px;border-radius:10px;margin-left:4px;">DESATIVADA</span>':''}</div>
-          <div style="font-size:12px;color:var(--text2);">${l.endereco||'—'} · ID: ${l.id}</div>
+        <div style="display:flex;gap:8px;align-items:flex-start;">
+          ${podeReordenarMaster?`<div style="display:flex;flex-direction:column;gap:2px;">
+            <button class="btn-ghost btn-sm" style="padding:2px 6px;" ${i===0?'disabled':''} onclick="moverLojaMaster(${l.id},-1)" title="Mover pra cima"><i class="ti ti-chevron-up"></i></button>
+            <button class="btn-ghost btn-sm" style="padding:2px 6px;" ${i===filtradas.length-1?'disabled':''} onclick="moverLojaMaster(${l.id},1)" title="Mover pra baixo"><i class="ti ti-chevron-down"></i></button>
+          </div>`:''}
+          <div>
+            <div style="font-size:15px;font-weight:700;">${l.nome}${l.ativa===false?' <span style="font-size:11px;font-weight:700;color:var(--red);background:var(--red-bg);padding:2px 8px;border-radius:10px;margin-left:4px;">DESATIVADA</span>':''}</div>
+            <div style="font-size:12px;color:var(--text2);">${l.endereco||'—'} · ID: ${l.id}</div>
+          </div>
         </div>
         <span style="font-size:12px;font-weight:700;color:${statusCor[status]||'var(--text2)'};">${statusLabel[status]||status}</span>
       </div>
@@ -4127,7 +4236,7 @@ async function recarregarListasLoja(){
       const novoForn={};
       categoriasTodas.forEach(c=>{novoForn[c.chave]=[];});
       ['fruta','legume','verdura'].forEach(c=>{if(!novoForn[c])novoForn[c]=[];});
-      data.forEach(f=>{if(!novoForn[f.categoria])novoForn[f.categoria]=[];novoForn[f.categoria].push({id:f.id,nome:f.nome});});
+      data.forEach(f=>{if(!novoForn[f.categoria])novoForn[f.categoria]=[];novoForn[f.categoria].push({id:f.id,nome:f.nome,ordem:f.ordem||0});});
       fornCustom=novoForn;
     }
   }catch(e){}
@@ -4604,7 +4713,7 @@ async function renderGerenciarProdutos(forcarReload){
   if(produtosGerenciarCache===null||forcarReload){
     cont.innerHTML='<p style="font-size:13px;color:var(--text3);padding:.5rem 0;">Carregando…</p>';
     try{
-      const {data,error}=await db.from('produtos').select('*').eq('loja_id',currentLojaId).order('categoria').order('nome');
+      const {data,error}=await db.from('produtos').select('*').eq('loja_id',currentLojaId).order('categoria').order('ordem').order('nome');
       if(error){cont.innerHTML='<div class="empty">Erro ao carregar produtos.</div>';return;}
       produtosGerenciarCache=data||[];
     }catch(e){cont.innerHTML='<div class="empty">Erro ao carregar produtos.</div>';return;}
@@ -4617,6 +4726,7 @@ function renderGerenciarProdutosLista(){
   const catFiltro=el('gerProdCatFilter')?el('gerProdCatFilter').value:'';
   const busca=(el('gerProdBusca')?el('gerProdBusca').value:'').toLowerCase();
   const filtrados=data.filter(p=>(!catFiltro||p.categoria===catFiltro)&&(!busca||p.nome.toLowerCase().includes(busca)));
+  const podeReordenar=!!catFiltro&&!busca;
   const wrapExcluirCat=el('btnExcluirCatWrap');
   if(wrapExcluirCat){
     if(catFiltro){
@@ -4628,7 +4738,11 @@ function renderGerenciarProdutosLista(){
     }
   }
   if(!filtrados.length){cont.innerHTML='<div class="empty"><i class="ti ti-apple"></i>Nenhum produto encontrado. Adicione um acima, ou ajuste os filtros.</div>';return;}
-  cont.innerHTML=filtrados.map(p=>`<div class="data-card"${p.ativo?'':' style="opacity:.55;"'}>
+  cont.innerHTML=filtrados.map((p,i)=>`<div class="data-card"${p.ativo?'':' style="opacity:.55;"'}>
+    ${podeReordenar?`<div style="display:flex;flex-direction:column;gap:2px;">
+      <button class="btn-ghost btn-sm" style="padding:2px 6px;" ${i===0?'disabled':''} onclick="moverProduto(${p.id},-1)" title="Mover pra cima"><i class="ti ti-chevron-up"></i></button>
+      <button class="btn-ghost btn-sm" style="padding:2px 6px;" ${i===filtrados.length-1?'disabled':''} onclick="moverProduto(${p.id},1)" title="Mover pra baixo"><i class="ti ti-chevron-down"></i></button>
+    </div>`:''}
     <div style="flex:1;min-width:0;">
       <p style="font-size:14px;font-weight:600;">${emojiCat(p.categoria)} ${p.nome}</p>
       <p style="font-size:12px;color:var(--text2);">${p.ativo?'Ativo':'Desativado'}</p>
@@ -4637,6 +4751,23 @@ function renderGerenciarProdutosLista(){
     <button class="btn-ghost btn-sm" onclick="alternarProdutoAtivo(${p.id},${!p.ativo})" title="${p.ativo?'Desativar':'Reativar'}"><i class="ti ti-${p.ativo?'eye-off':'eye'}"></i></button>
     <button class="btn-danger-soft btn-sm" onclick="excluirProduto(${p.id},'${p.nome.replace(/'/g,"\\'")}')" title="Excluir"><i class="ti ti-trash"></i></button>
   </div>`).join('');
+}
+async function moverProduto(id,direcao){
+  const catFiltro=el('gerProdCatFilter')?el('gerProdCatFilter').value:'';
+  const lista=(produtosGerenciarCache||[]).filter(p=>p.categoria===catFiltro).sort((a,b)=>(a.ordem-b.ordem)||a.nome.localeCompare(b.nome,'pt-BR'));
+  const idx=lista.findIndex(p=>p.id===id);
+  const outroIdx=idx+direcao;
+  if(idx===-1||outroIdx<0||outroIdx>=lista.length)return;
+  const a=lista[idx],b=lista[outroIdx];
+  const ordemA=a.ordem,ordemB=b.ordem;
+  try{
+    const {error:e1}=await db.from('produtos').update({ordem:ordemB}).eq('id',a.id);
+    if(e1){showToast('Erro ao reordenar: '+e1.message);return;}
+    const {error:e2}=await db.from('produtos').update({ordem:ordemA}).eq('id',b.id);
+    if(e2){await db.from('produtos').update({ordem:ordemA}).eq('id',a.id);showToast('Erro ao reordenar: '+e2.message);return;}
+    a.ordem=ordemB;b.ordem=ordemA;
+    renderGerenciarProdutosLista();
+  }catch(e){showToast('Erro ao reordenar: '+e.message);}
 }
 async function excluirTodosProdutosCategoria(){
   const catFiltro=el('gerProdCatFilter')?el('gerProdCatFilter').value:'';
@@ -4798,7 +4929,7 @@ async function carregarDadosDaLoja(){
       fornData.forEach(f=>{
         const cat=f.categoria;
         if(!novoForn[cat])novoForn[cat]=[];
-        novoForn[cat].push({id:f.id,nome:f.nome});
+        novoForn[cat].push({id:f.id,nome:f.nome,ordem:f.ordem||0});
       });
       fornCustom=novoForn;
     }
