@@ -477,11 +477,7 @@ button{font-family:inherit;font-size:14px;font-weight:600;cursor:pointer;border-
           <div id="listaPedido"></div>
         </div>
         <div id="view-tabela" style="display:none;">
-          <div class="cat-btn-bar" style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
-            <button class="cat-btn active" data-cat="fruta" onclick="switchCatTabela('fruta')" style="font-size:16px;">🍊 Frutas</button>
-            <button class="cat-btn" data-cat="legume" onclick="switchCatTabela('legume')" style="font-size:16px;">🥕 Legumes</button>
-            <button class="cat-btn" data-cat="verdura" onclick="switchCatTabela('verdura')" style="font-size:16px;">🥬 Verduras</button>
-          </div>
+          <div class="cat-btn-bar" id="pedTabelaCatBtns" style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;"></div>
           <!-- Pesquisa na tabela -->
           <div style="position:relative;margin-bottom:.625rem;">
             <i class="ti ti-search" style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--text3);font-size:15px;pointer-events:none;"></i>
@@ -531,11 +527,7 @@ button{font-family:inherit;font-size:14px;font-weight:600;cursor:pointer;border-
           <div style="display:flex;justify-content:flex-end;margin-bottom:.625rem;">
             <button class="btn-ghost btn-sm" onclick="exportarRelatorioCompradorPdf()"><i class="ti ti-file-type-pdf"></i> Exportar relatório por loja (PDF)</button>
           </div>
-          <div class="cat-btn-bar" style="display:flex;gap:6px;flex-wrap:wrap;" id="comprCatBtns">
-            <button class="cat-btn active" data-cat="fruta" onclick="selecionarCatComprador('fruta')" style="flex:1;min-width:90px;font-size:15px;">🍊 Frutas</button>
-            <button class="cat-btn" data-cat="legume" onclick="selecionarCatComprador('legume')" style="flex:1;min-width:90px;font-size:15px;">🥕 Legumes</button>
-            <button class="cat-btn" data-cat="verdura" onclick="selecionarCatComprador('verdura')" style="flex:1;min-width:90px;font-size:15px;">🥬 Verduras</button>
-          </div>
+          <div class="cat-btn-bar" style="display:flex;gap:6px;flex-wrap:wrap;" id="comprCatBtns"></div>
           <p style="font-size:11px;color:var(--text2);margin:.5rem 0 .875rem;">Pedido consolidado de todas as lojas vinculadas a você como comprador — confirmar aqui distribui automaticamente pra cada loja de origem.</p>
           <div id="listaComprasComprador"></div>
           <div class="sh"><i class="ti ti-check"></i> Comprados hoje (todas as lojas)</div>
@@ -560,11 +552,7 @@ button{font-family:inherit;font-size:14px;font-weight:600;cursor:pointer;border-
 
         <!-- VIEW: POR CATEGORIA -->
         <div id="ceasa-view-categoria">
-          <div class="cat-btn-bar" style="display:flex;gap:6px;flex-wrap:wrap;" id="ceasaCatBtns">
-            <button class="cat-btn active" data-cat="fruta" onclick="switchCeasaCat('fruta')" style="flex:1;min-width:90px;font-size:15px;">🍊 Frutas <span id="catCount-fruta" style="font-size:11px;opacity:.7;"></span></button>
-            <button class="cat-btn" data-cat="legume" onclick="switchCeasaCat('legume')" style="flex:1;min-width:90px;font-size:15px;">🥕 Legumes <span id="catCount-legume" style="font-size:11px;opacity:.7;"></span></button>
-            <button class="cat-btn" data-cat="verdura" onclick="switchCeasaCat('verdura')" style="flex:1;min-width:90px;font-size:15px;">🥬 Verduras <span id="catCount-verdura" style="font-size:11px;opacity:.7;"></span></button>
-          </div>
+          <div class="cat-btn-bar" style="display:flex;gap:6px;flex-wrap:wrap;" id="ceasaCatBtns"></div>
           <div id="listaPendentesCat"></div>
           <div id="listaNaoCompradosCat"></div>
         </div>
@@ -586,10 +574,7 @@ button{font-family:inherit;font-size:14px;font-weight:600;cursor:pointer;border-
           </div>
           <button class="btn-primary" onclick="addAvulso()"><i class="ti ti-plus"></i> Adicionar avulso</button>
         </div>
-        <div class="stat-grid">
-          <div class="stat"><div class="stat-label">🍊 Frutas</div><div class="stat-value" id="totFruta">R$ 0,00</div></div>
-          <div class="stat"><div class="stat-label">🥕 Legumes</div><div class="stat-value" id="totLegume">R$ 0,00</div></div>
-          <div class="stat"><div class="stat-label">🥬 Verduras</div><div class="stat-value" id="totVerdura">R$ 0,00</div></div>
+        <div class="stat-grid" id="statGridCompras">
           <div class="stat" style="border-color:var(--accent-d);"><div class="stat-label" style="color:var(--accent);">Total do dia</div><div class="stat-value" style="color:var(--accent);" id="totDia">R$ 0,00</div></div>
         </div>
         <div class="sh"><i class="ti ti-check"></i> Comprados hoje</div>
@@ -670,12 +655,7 @@ button{font-family:inherit;font-size:14px;font-weight:600;cursor:pointer;border-
         <div id="forn-compras">
           <div style="margin-bottom:.625rem;">
             <label style="font-size:11px;color:var(--text2);font-weight:600;display:block;margin-bottom:3px;">Categoria</label>
-            <div id="fornFiltroCatBtns" style="display:flex;gap:6px;flex-wrap:wrap;">
-              <button class="cat-btn active" data-cat="" onclick="selecionarFornFiltroCat('')" style="font-size:14px;">Todas</button>
-              <button class="cat-btn" data-cat="fruta" onclick="selecionarFornFiltroCat('fruta')" style="font-size:14px;">🍊 Frutas</button>
-              <button class="cat-btn" data-cat="legume" onclick="selecionarFornFiltroCat('legume')" style="font-size:14px;">🥕 Legumes</button>
-              <button class="cat-btn" data-cat="verdura" onclick="selecionarFornFiltroCat('verdura')" style="font-size:14px;">🥬 Verduras</button>
-            </div>
+            <div id="fornFiltroCatBtns" style="display:flex;gap:6px;flex-wrap:wrap;"></div>
           </div>
           <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:.5rem;align-items:flex-end;">
             <div style="flex:1;min-width:130px;">
@@ -706,10 +686,7 @@ button{font-family:inherit;font-size:14px;font-weight:600;cursor:pointer;border-
           <button class="btn-ghost btn-sm" onclick="exportarRelatorioPdf('produto')"><i class="ti ti-file-type-pdf"></i> Exportar PDF — por produto</button>
         </div>
         <!-- Totalizadores mensais -->
-        <div class="stat-grid" style="margin-bottom:.875rem;">
-          <div class="stat"><div class="stat-label">🍊 Frutas/mês</div><div class="stat-value" id="rFrutaMes">R$ 0</div></div>
-          <div class="stat"><div class="stat-label">🥕 Legumes/mês</div><div class="stat-value" id="rLegumeMes">R$ 0</div></div>
-          <div class="stat"><div class="stat-label">🥬 Verduras/mês</div><div class="stat-value" id="rVerduraMes">R$ 0</div></div>
+        <div class="stat-grid" style="margin-bottom:.875rem;" id="statGridRelatorioMes">
           <div class="stat" style="border-color:var(--accent-d);"><div class="stat-label" style="color:var(--accent);">Total/mês</div><div class="stat-value" style="color:var(--accent);" id="rTotalMes">R$ 0</div></div>
         </div>
         <!-- Tabela semanal por categoria -->
@@ -974,12 +951,13 @@ button{font-family:inherit;font-size:14px;font-weight:600;cursor:pointer;border-
 
       </section>
 
-      <!-- GERENCIAR (Produtos / Fornecedores / Despesas) -->
+      <!-- GERENCIAR (Produtos / Fornecedores / Despesas / Categorias) -->
       <section id="tab-gerenciar" style="display:none;">
         <div class="seg-tabs" style="margin-bottom:1rem;">
           <button class="seg-tab active" id="gerSubProdutos" onclick="switchGerenciarView('produtos')"><i class="ti ti-apple"></i> Produtos</button>
           <button class="seg-tab" id="gerSubFornecedores" onclick="switchGerenciarView('fornecedores')"><i class="ti ti-truck"></i> Fornecedores</button>
           <button class="seg-tab" id="gerSubDespesas" onclick="switchGerenciarView('despesas')"><i class="ti ti-receipt"></i> Despesas</button>
+          <button class="seg-tab" id="gerSubCategorias" onclick="switchGerenciarView('categorias')"><i class="ti ti-category"></i> Categorias</button>
         </div>
 
         <!-- VIEW: PRODUTOS -->
@@ -1021,11 +999,7 @@ button{font-family:inherit;font-size:14px;font-weight:600;cursor:pointer;border-
             <div class="field-row">
               <input id="fornNomeInput" placeholder="Nome do fornecedor"/>
             </div>
-            <div id="fornCadCatBtns" style="display:flex;gap:6px;margin-bottom:.625rem;flex-wrap:wrap;">
-              <button class="cat-btn active" data-cat="fruta" onclick="selecionarFornCat('fruta')" style="font-size:15px;">🍊 Frutas</button>
-              <button class="cat-btn" data-cat="legume" onclick="selecionarFornCat('legume')" style="font-size:15px;">🥕 Legumes</button>
-              <button class="cat-btn" data-cat="verdura" onclick="selecionarFornCat('verdura')" style="font-size:15px;">🥬 Verduras</button>
-            </div>
+            <div id="fornCadCatBtns" style="display:flex;gap:6px;margin-bottom:.625rem;flex-wrap:wrap;"></div>
             <div style="display:flex;gap:.5rem;">
               <button class="btn-primary" onclick="salvarFornecedor()"><i class="ti ti-device-floppy"></i> <span id="fornFormBtn">Adicionar</span></button>
               <button class="btn-ghost" onclick="cancelEditForn()" id="btnCancelForn" style="display:none;flex:none;">Cancelar</button>
@@ -1053,6 +1027,22 @@ button{font-family:inherit;font-size:14px;font-weight:600;cursor:pointer;border-
             <button class="btn-ghost btn-sm" onclick="exportarDespesasTiposCsv()"><i class="ti ti-file-spreadsheet"></i> Exportar tabela (CSV)</button>
           </div>
           <div id="listaTiposDespesa"></div>
+        </div>
+
+        <!-- VIEW: CATEGORIAS -->
+        <div id="ger-categorias" style="display:none;">
+          <div class="card" style="margin-bottom:1rem;">
+            <div class="card-label" id="catFormTitle">Adicionar categoria</div>
+            <div class="field-row">
+              <input type="text" id="novaCategoriaEmoji" placeholder="Emoji (ex: 🧂)" maxlength="4" style="flex:0 0 90px;text-align:center;font-size:18px;"/>
+              <input type="text" id="novaCategoriaNome" placeholder="Nome da categoria (ex: Temperos)"/>
+            </div>
+            <div style="display:flex;gap:.5rem;">
+              <button class="btn-primary" id="btnSalvarCategoria" onclick="adicionarCategoria()" style="flex:1;"><i class="ti ti-plus"></i> Adicionar</button>
+              <button class="btn-ghost" onclick="cancelEditCategoria()" id="btnCancelCategoria" style="display:none;flex:none;">Cancelar</button>
+            </div>
+          </div>
+          <div id="listaCategorias"></div>
         </div>
       </section>
 
@@ -1202,8 +1192,11 @@ const FORNECEDORES_PADRAO={fruta:['Agro sul','América','Barão','Bela vista','B
 const FORNECEDORES=FORNECEDORES_PADRAO;
 const DESPESAS_TIPO_PADRAO=['Gelo','Gasolina','Embalagem','Café','Almoço','Carregador','Estacionamento','Frete','Caixa vazia'];
 let DESPESAS_TIPO=[...DESPESAS_TIPO_PADRAO];
-const CAT_CLASS={fruta:'cat-fruta',legume:'cat-legume',verdura:'cat-verdura'};
 const CAT_LABEL={fruta:'Fruta',legume:'Legume',verdura:'Verdura'};
+const CAT_LABEL_PLURAL={fruta:'Frutas',legume:'Legumes',verdura:'Verduras'};
+const CAT_EMOJI_PADRAO={fruta:'🍊',legume:'🥕',verdura:'🥬'};
+const CAT_COR_PADRAO={fruta:'#ff7043',legume:'#66bb6a',verdura:'#26c6da'};
+const CAT_COR_PALETA=['#ab47bc','#5c6bc0','#26a69a','#ffca28','#8d6e63','#ec407a','#7e57c2','#42a5f5','#9ccc65','#ff7043'];
 const PAY_BADGE={PG:'badge-pg',PGT:'badge-pgt',F:'badge-fiado'};
 const PAY_LABEL={PG:'Dinheiro',PGT:'Transferência',F:'Fiado'};
 const ACCENT_COLORS=[
@@ -1224,6 +1217,91 @@ const ACCENT_COLORS=[
   {name:'Rosa',         hex:'#f472b6',dark:'#db2777',bg:'#280a1a',txt:'#1a0010'},
   {name:'Fúcsia',       hex:'#e879f9',dark:'#a21caf',bg:'#220a24',txt:'#140014'},
 ];
+
+/* ── CATEGORIAS DINÂMICAS ── */
+// categorias: lista das categorias ATIVAS da loja atual, ordenadas por "ordem". Usada em toda a UI operacional.
+// categoriasTodas: inclui as inativas também. Usada só na tela de gerenciamento.
+// categoriasConsolidado: união das categorias de várias lojas (comprador / "ver consolidado" do dono).
+let categorias=[],categoriasTodas=[],categoriasConsolidado=[];
+function catInfo(chave,lista){
+  const l=lista||categorias;
+  const c=l.find(x=>x.chave===chave);
+  if(c)return c;
+  // fallback pras 3 categorias clássicas, caso a lista ainda não tenha carregado
+  if(CAT_LABEL_PLURAL[chave])return{chave,nome:CAT_LABEL_PLURAL[chave],emoji:CAT_EMOJI_PADRAO[chave],ordem:0,ativa:true};
+  return{chave,nome:chave,emoji:'📦',ordem:99,ativa:true};
+}
+function labelCat(chave,lista){return catInfo(chave,lista).nome;}
+function emojiCat(chave,lista){return catInfo(chave,lista).emoji;}
+function corCat(chave,lista){
+  if(CAT_COR_PADRAO[chave])return CAT_COR_PADRAO[chave];
+  const info=catInfo(chave,lista);
+  return CAT_COR_PALETA[(info.ordem||0)%CAT_COR_PALETA.length];
+}
+function badgeCat(chave){
+  return `<span class="badge" style="background:${corCat(chave)}22;color:${corCat(chave)}">${labelCat(chave)}</span>`;
+}
+function slugifyCategoria(nome){
+  return nome.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim().replace(/[^a-z0-9]+/g,'_').replace(/^_+|_+$/g,'')||'cat';
+}
+async function carregarCategorias(){
+  try{
+    const {data,error}=await db.from('categorias').select('*').eq('loja_id',currentLojaId).order('ordem');
+    if(error)return;
+    categoriasTodas=data||[];
+    categorias=categoriasTodas.filter(c=>c.ativa);
+  }catch(e){}
+}
+async function carregarCategoriasConsolidado(){
+  try{
+    const idsLojas=lojas.map(l=>l.id);
+    if(!idsLojas.length){categoriasConsolidado=[];return;}
+    const {data,error}=await db.from('categorias').select('*').in('loja_id',idsLojas).eq('ativa',true).order('ordem');
+    if(error)return;
+    const vistos=new Set();categoriasConsolidado=[];
+    (data||[]).forEach(c=>{if(!vistos.has(c.chave)){vistos.add(c.chave);categoriasConsolidado.push(c);}});
+    categoriasConsolidado.sort((a,b)=>a.ordem-b.ordem);
+  }catch(e){}
+}
+function renderCatBtnBar(containerId,lista,catAtiva,fnName,opts){
+  opts=opts||{};
+  const cont=el(containerId);if(!cont)return;
+  let html='';
+  if(opts.incluirTodas)html+=`<button class="cat-btn${catAtiva===''?' active':''}" data-cat="" onclick="${fnName}('')" style="${opts.btnStyle||''}">Todas</button>`;
+  html+=lista.map(c=>`<button class="cat-btn${catAtiva===c.chave?' active':''}" data-cat="${c.chave}" onclick="${fnName}('${c.chave}')" style="${opts.btnStyle||''}">${c.emoji} ${c.nome}${opts.contador?` <span id="catCount-${c.chave}" style="font-size:11px;opacity:.7;"></span>`:''}</button>`).join('');
+  cont.innerHTML=html;
+}
+function listaCatComFallback(){
+  return categorias.length?categorias:[{chave:'fruta',nome:'Frutas',emoji:'🍊',ordem:1},{chave:'legume',nome:'Legumes',emoji:'🥕',ordem:2},{chave:'verdura',nome:'Verduras',emoji:'🥬',ordem:3}];
+}
+function renderTodosSeletoresCategoria(){
+  const lista=listaCatComFallback();
+  const listaCons=categoriasConsolidado.length?categoriasConsolidado:lista;
+  renderCatBtnBar('pedTabelaCatBtns',lista,currentCatTab,'switchCatTabela',{btnStyle:'font-size:16px;'});
+  renderCatBtnBar('ceasaCatBtns',lista,ceasaCatAtiva,'switchCeasaCat',{btnStyle:'flex:1;min-width:90px;font-size:15px;',contador:true});
+  renderCatBtnBar('comprCatBtns',listaCons,comprCatAtiva,'selecionarCatComprador',{btnStyle:'flex:1;min-width:90px;font-size:15px;'});
+  renderCatBtnBar('fornFiltroCatBtns',lista,fornFiltroCatSelecionada,'selecionarFornFiltroCat',{btnStyle:'font-size:14px;',incluirTodas:true});
+  renderCatBtnBar('fornCadCatBtns',lista,fornCadCatSelecionada,'selecionarFornCat',{btnStyle:'font-size:15px;'});
+  renderSeletoresCategoriaSelect();
+}
+function renderSeletoresCategoriaSelect(){
+  const lista=listaCatComFallback();
+  const opts=lista.map(c=>`<option value="${c.chave}">${c.emoji} ${c.nome}</option>`).join('');
+  const optsComTodas=`<option value="">Todas</option>`+opts;
+  const optsComTodasCategorias=`<option value="">Todas categorias</option>`+opts;
+  ['catPlan','catAvulso','novoProdutoCategoria'].forEach(id=>{
+    const s=el(id);if(!s)return;
+    const val=s.value;
+    s.innerHTML=opts;
+    if(lista.find(c=>c.chave===val))s.value=val;
+  });
+  const precoF=el('precoCatFilter');
+  if(precoF){const val=precoF.value;precoF.innerHTML=optsComTodas;precoF.value=lista.find(c=>c.chave===val)?val:'';}
+  const histF=el('histCatFilter');
+  if(histF){const val=histF.value;histF.innerHTML=optsComTodasCategorias;histF.value=lista.find(c=>c.chave===val)?val:'';}
+  const gerF=el('gerProdCatFilter');
+  if(gerF){const val=gerF.value;gerF.innerHTML=optsComTodasCategorias;gerF.value=lista.find(c=>c.chave===val)?val:'';}
+}
 
 /* ── STATE ── */
 let currentUser=null,currentLojaId=1,nextId=20,nextCompraId=1;
@@ -1248,7 +1326,7 @@ let lojas=[];
 let usuarios=[];
 let itensPedido=[];
 let compras=[],despesas=[];
-let tabelaDraft={fruta:{},legume:{},verdura:{}},tabelaDraftTipo={fruta:{},legume:{},verdura:{}},tabelaDraftUnid={fruta:{},legume:{},verdura:{}};
+let tabelaDraft={},tabelaDraftTipo={},tabelaDraftUnid={};
 let currentCatTab='fruta';
 let currentDate=todayStr();
 let sidebarOpen=false;
@@ -1517,6 +1595,7 @@ async function carregarMinhasLojas(){
       if(idx===-1) lojas.push(lojaObj); else lojas[idx]=lojaObj;
     });
     renderLojas();
+    await carregarCategoriasConsolidado();
   }catch(e){}
 }
 
@@ -1647,21 +1726,17 @@ function renderHome(){
     const [y,m]=c.data.split('-').map(Number);
     return y===homeResumoAno&&(m-1)===homeResumoMes;
   });
-  const totF=myCompras.filter(c=>c.categoria==='fruta').reduce((a,c)=>a+c.qtd*c.valorUnit,0);
-  const totL=myCompras.filter(c=>c.categoria==='legume').reduce((a,c)=>a+c.qtd*c.valorUnit,0);
-  const totV=myCompras.filter(c=>c.categoria==='verdura').reduce((a,c)=>a+c.qtd*c.valorUnit,0);
-  const F=totF, L=totL, V=totV;
-  const total=F+L+V;
-  el('homePieLegend').innerHTML=`
-    <div class="legend-row"><div class="legend-dot" style="background:#ff7043"></div><span>Frutas</span><span class="legend-val">${fmt(F)}</span></div>
-    <div class="legend-row"><div class="legend-dot" style="background:#66bb6a"></div><span>Legumes</span><span class="legend-val">${fmt(L)}</span></div>
-    <div class="legend-row"><div class="legend-dot" style="background:#26c6da"></div><span>Verduras</span><span class="legend-val">${fmt(V)}</span></div>
-    <div style="border-top:1px solid var(--border);padding-top:.375rem;margin-top:.25rem;" class="legend-row"><strong>Total mês</strong><span class="legend-val" style="color:var(--accent);">${fmt(total)}</span></div>`;
+  const listaCat=listaCatComFallback();
+  const totais=listaCat.map(c=>myCompras.filter(x=>x.categoria===c.chave).reduce((a,x)=>a+x.qtd*x.valorUnit,0));
+  const cores=listaCat.map(c=>corCat(c.chave));
+  const total=totais.reduce((a,v)=>a+v,0);
+  el('homePieLegend').innerHTML=listaCat.map((c,i)=>`<div class="legend-row"><div class="legend-dot" style="background:${cores[i]}"></div><span>${c.nome}</span><span class="legend-val">${fmt(totais[i])}</span></div>`).join('')
+    +`<div style="border-top:1px solid var(--border);padding-top:.375rem;margin-top:.25rem;" class="legend-row"><strong>Total mês</strong><span class="legend-val" style="color:var(--accent);">${fmt(total)}</span></div>`;
   if(homePieInst)homePieInst.destroy();
   Chart.register(ChartDataLabels);
   homePieInst=new Chart(el('homePie'),{
     type:'doughnut',
-    data:{labels:['Frutas','Legumes','Verduras'],datasets:[{data:[F,L,V],backgroundColor:['#ff7043','#66bb6a','#26c6da'],borderWidth:2,borderColor:'var(--bg)',hoverOffset:4}]},
+    data:{labels:listaCat.map(c=>c.nome),datasets:[{data:totais,backgroundColor:cores,borderWidth:2,borderColor:'var(--bg)',hoverOffset:4}]},
     options:{responsive:true,maintainAspectRatio:true,cutout:'58%',
       plugins:{
         legend:{display:false},
@@ -1924,17 +1999,15 @@ function navegarDiaCompra(delta){
 function buscarSemanaCompras(idx){
   const {start,end,label}=getWeekBounds(idx,currentDate);
   const my=compras.filter(c=>c.lojaId===currentLojaId&&c.data>=start&&c.data<=end);
-  const tot={fruta:0,legume:0,verdura:0};
+  const tot={};
   my.forEach(c=>{tot[c.categoria]=(tot[c.categoria]||0)+c.qtd*c.valorUnit;});
-  const total=(tot.fruta||0)+(tot.legume||0)+(tot.verdura||0);
+  const total=Object.values(tot).reduce((a,v)=>a+v,0);
   const cont=el('resumoSemanaCompras');
   cont.style.display='block';
   cont.innerHTML=`
     <p style="font-size:13px;font-weight:700;margin-bottom:.625rem;">📅 ${label}</p>
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(90px,1fr));gap:.5rem;font-size:13px;">
-      <div>🍊 Frutas<br><strong>${fmt(tot.fruta||0)}</strong></div>
-      <div>🥕 Legumes<br><strong>${fmt(tot.legume||0)}</strong></div>
-      <div>🥬 Verduras<br><strong>${fmt(tot.verdura||0)}</strong></div>
+      ${listaCatComFallback().map(c=>`<div>${c.emoji} ${c.nome}<br><strong>${fmt(tot[c.chave]||0)}</strong></div>`).join('')}
       <div style="color:var(--accent);">Total<br><strong>${fmt(total)}</strong></div>
     </div>
     <p style="font-size:11px;color:var(--text2);margin-top:.5rem;">${my.length} compra(s) registrada(s) nesse período.</p>`;
@@ -1960,7 +2033,6 @@ function onTipoPlanChange(){
   el('unidCaixaWrap').style.display=tipo==='caixa'?'':'none';
 }
 /* ── PESQUISA DE PRODUTO NO PEDIDO ── */
-const CAT_EMOJI={fruta:'🍊',legume:'🥕',verdura:'🥬'};
 let _prodSelecionadoNome='', _prodSelecionadoCat='';
 
 function filtrarProdutos(q){
@@ -1969,7 +2041,7 @@ function filtrarProdutos(q){
   if(!q.trim()){res.style.display='none';return;}
   const termo=q.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
   const matches=[];
-  ['fruta','legume','verdura'].forEach(cat=>{
+  Object.keys(PRODUTOS).forEach(cat=>{
     PRODUTOS[cat].forEach(p=>{
       const pNorm=p.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
       if(pNorm.includes(termo))matches.push({produto:p,categoria:cat});
@@ -1983,9 +2055,9 @@ function filtrarProdutos(q){
     <div onclick="selecionarProduto('${m.produto.replace(/'/g,"\\'")}','${m.categoria}')"
       style="padding:.625rem 1rem;cursor:pointer;display:flex;align-items:center;gap:8px;border-bottom:1px solid var(--border);font-size:13px;"
       onmouseover="this.style.background='var(--bg2)'" onmouseout="this.style.background=''">
-      <span>${CAT_EMOJI[m.categoria]}</span>
+      <span>${emojiCat(m.categoria)}</span>
       <span style="font-weight:500;">${m.produto}</span>
-      <span style="font-size:11px;color:var(--text3);margin-left:auto;">${CAT_LABEL[m.categoria]}</span>
+      <span style="font-size:11px;color:var(--text3);margin-left:auto;">${labelCat(m.categoria)}</span>
     </div>`).join('');
   res.style.display='block';
 }
@@ -2000,7 +2072,7 @@ function selecionarProduto(nome, cat){
   el('prodSearch').value='';
   el('prodSearchResults').style.display='none';
   el('prodSelecionadoNome').textContent=nome;
-  el('prodSelecionadoCat').textContent=CAT_EMOJI[cat]+' '+CAT_LABEL[cat];
+  el('prodSelecionadoCat').textContent=emojiCat(cat)+' '+labelCat(cat);
   el('prodSelecionado').style.display='flex';
   el('qtdPlan').focus();
 }
@@ -2031,11 +2103,11 @@ function removeItem(id){itensPedido=itensPedido.filter(i=>i.id!==id);syncPedidoD
 function renderPedido(){
   const itens=itensPedido.filter(i=>i.lojaId===currentLojaId&&i.data===currentDate);
   el('listaPedido').innerHTML=itens.length?itens.map(p=>`
-    <div class="item-row ${CAT_CLASS[p.categoria]}">
+    <div class="item-row" style="border-left-color:${corCat(p.categoria)};">
       <div class="item-head">
         <div>
           <div class="item-title">${p.produto}</div>
-          <div class="item-meta">${p.qtd} ${p.tipo==='caixa'?'cx':'un'} previsto${p.unidPorCaixa?` · ${p.unidPorCaixa} un/cx`:''} · ${CAT_LABEL[p.categoria]}</div>
+          <div class="item-meta">${p.qtd} ${p.tipo==='caixa'?'cx':'un'} previsto${p.unidPorCaixa?` · ${p.unidPorCaixa} un/cx`:''} · ${labelCat(p.categoria)}</div>
         </div>
         <div style="display:flex;align-items:center;gap:6px;">
           ${statusBadge(p.status)}
@@ -2048,9 +2120,7 @@ function renderPedido(){
       ${p.status==='pendente'?`
         <div class="inline-form" id="ep-${p.id}">
           <select id="ep-cat-${p.id}" style="flex:1;min-width:100px;" onchange="onEditCatChange(${p.id})">
-            <option value="fruta"${p.categoria==='fruta'?' selected':''}>Fruta</option>
-            <option value="legume"${p.categoria==='legume'?' selected':''}>Legume</option>
-            <option value="verdura"${p.categoria==='verdura'?' selected':''}>Verdura</option>
+            ${listaCatComFallback().map(c=>`<option value="${c.chave}"${p.categoria===c.chave?' selected':''}>${c.nome}</option>`).join('')}
           </select>
           <select id="ep-prod-${p.id}" style="flex:2;min-width:140px;"></select>
           <input type="number" step="0.5" min="0" value="${p.qtd}" id="ep-qtd-${p.id}" placeholder="Qtd" style="flex:1;min-width:80px;"/>
@@ -2134,21 +2204,21 @@ function updateUnidCell(i,cat,p){
   if(tipo==='unidade'){unidInp.style.opacity='.3';unidInp.style.pointerEvents='none';unidInp.value='';tabelaDraftUnid[cat][p]='';}
   else{unidInp.style.opacity='1';unidInp.style.pointerEvents='';}
 }
-function updateSalvarLabel(){let t=0;['fruta','legume','verdura'].forEach(c=>PRODUTOS[c].forEach(p=>{if(parseFloat(tabelaDraft[c][p])>0)t++;}));el('salvarLabel').textContent=t>0?`Salvar pedido (${t} iten${t===1?'':'s'})`:'Salvar pedido';}
+function updateSalvarLabel(){let t=0;Object.keys(PRODUTOS).forEach(c=>PRODUTOS[c].forEach(p=>{if(parseFloat(tabelaDraft[c][p])>0)t++;}));el('salvarLabel').textContent=t>0?`Salvar pedido (${t} iten${t===1?'':'s'})`:'Salvar pedido';}
 function salvarTabela(){
   saveDraftFromDOM();let n=0;
-  ['fruta','legume','verdura'].forEach(cat=>{PRODUTOS[cat].forEach(p=>{const qtd=parseFloat(tabelaDraft[cat][p])||0;if(qtd>0){const tipo=tabelaDraftTipo[cat][p]||'caixa';const unid=tipo==='caixa'?(parseInt(tabelaDraftUnid[cat][p])||null):null;const novoItem={id:nextId++,data:currentDate,produto:p,categoria:cat,qtd,tipo,unidPorCaixa:unid,status:'pendente',lojaId:currentLojaId};itensPedido.push(novoItem);syncPedidoInsert(novoItem);tabelaDraft[cat][p]='';tabelaDraftTipo[cat][p]='caixa';tabelaDraftUnid[cat][p]='';n++;}});});
+  Object.keys(PRODUTOS).forEach(cat=>{PRODUTOS[cat].forEach(p=>{const qtd=parseFloat(tabelaDraft[cat][p])||0;if(qtd>0){const tipo=tabelaDraftTipo[cat][p]||'caixa';const unid=tipo==='caixa'?(parseInt(tabelaDraftUnid[cat][p])||null):null;const novoItem={id:nextId++,data:currentDate,produto:p,categoria:cat,qtd,tipo,unidPorCaixa:unid,status:'pendente',lojaId:currentLojaId};itensPedido.push(novoItem);syncPedidoInsert(novoItem);tabelaDraft[cat][p]='';tabelaDraftTipo[cat][p]='caixa';tabelaDraftUnid[cat][p]='';n++;}});});
   renderTabelaGrid();renderPedidoTabela();renderPedido();renderPendentes();renderHistorico();updateSalvarLabel();
   if(n>0)showToast(`${n} iten${n===1?'':'s'} adicionado${n===1?'':'s'}!`);
 }
 function renderPedidoTabela(){
   const itens=itensPedido.filter(i=>i.lojaId===currentLojaId&&i.data===currentDate);
   el('listaPedidoTabela').innerHTML=itens.length?`<div class="sh" style="margin-top:.75rem;"><i class="ti ti-clipboard-check"></i> Já no pedido</div>`
-    +itens.map(p=>`<div class="item-row ${CAT_CLASS[p.categoria]}">
+    +itens.map(p=>`<div class="item-row" style="border-left-color:${corCat(p.categoria)};">
       <div class="item-head">
         <div>
           <div class="item-title">${p.produto}</div>
-          <div class="item-meta">${p.qtd} ${p.tipo==='caixa'?'cx':'un'}${p.unidPorCaixa?' · '+p.unidPorCaixa+' un/cx':''} · ${CAT_LABEL[p.categoria]}</div>
+          <div class="item-meta">${p.qtd} ${p.tipo==='caixa'?'cx':'un'}${p.unidPorCaixa?' · '+p.unidPorCaixa+' un/cx':''} · ${labelCat(p.categoria)}</div>
         </div>
         <div style="display:flex;align-items:center;gap:6px;">
           ${statusBadge(p.status)}
@@ -2158,9 +2228,7 @@ function renderPedidoTabela(){
       </div>
       ${p.status==='pendente'?`<div class="inline-form" id="ept-${p.id}">
         <select id="ept-cat-${p.id}" style="flex:1;min-width:100px;" onchange="onEditCatChange(${p.id},true)">
-          <option value="fruta"${p.categoria==='fruta'?' selected':''}>Fruta</option>
-          <option value="legume"${p.categoria==='legume'?' selected':''}>Legume</option>
-          <option value="verdura"${p.categoria==='verdura'?' selected':''}>Verdura</option>
+          ${listaCatComFallback().map(c=>`<option value="${c.chave}"${p.categoria===c.chave?' selected':''}>${c.nome}</option>`).join('')}
         </select>
         <select id="ept-prod-${p.id}" style="flex:2;min-width:140px;"></select>
         <input type="number" step="1" min="0" value="${p.qtd}" id="ept-qtd-${p.id}" placeholder="Qtd" style="flex:1;min-width:80px;" oninput="this.value=Math.round(+this.value)||''"/>
@@ -2211,12 +2279,12 @@ function switchCeasaCat(cat){
 function renderPendentesCat(){
   const itens=itensPedido.filter(i=>i.lojaId===currentLojaId&&i.data===currentDate&&i.status==='pendente');
   const naoComp=itensPedido.filter(i=>i.lojaId===currentLojaId&&i.data===currentDate&&i.status==='nao_comprado');
-  const CATS=[{k:'fruta',emoji:'🍊',label:'Frutas'},{k:'legume',emoji:'🥕',label:'Legumes'},{k:'verdura',emoji:'🥬',label:'Verduras'}];
+  const CATS=categorias.length?categorias:[{chave:'fruta',emoji:'🍊',nome:'Frutas'},{chave:'legume',emoji:'🥕',nome:'Legumes'},{chave:'verdura',emoji:'🥬',nome:'Verduras'}];
 
   // Atualiza contadores nos botões
-  CATS.forEach(({k})=>{
-    const count=itens.filter(p=>p.categoria===k).length;
-    const badge=el('catCount-'+k);
+  CATS.forEach(({chave})=>{
+    const count=itens.filter(p=>p.categoria===chave).length;
+    const badge=el('catCount-'+chave);
     if(badge)badge.textContent=count>0?'('+count+')':'';
   });
 
@@ -2227,15 +2295,15 @@ function renderPendentesCat(){
   }
 
   // Mostra apenas a categoria ativa
-  const catInfo=CATS.find(c=>c.k===ceasaCatAtiva);
+  const catAtivaInfo=CATS.find(c=>c.chave===ceasaCatAtiva)||catInfo(ceasaCatAtiva,CATS);
   const grupo=itens.filter(p=>p.categoria===ceasaCatAtiva);
 
   let html='';
   if(!grupo.length){
-    html='<div class="empty" style="padding:2rem;text-align:center;"><i class="ti ti-checks" style="font-size:28px;display:block;margin-bottom:.5rem;"></i>Nenhum pendente em '+catInfo.label+' hoje.</div>';
+    html='<div class="empty" style="padding:2rem;text-align:center;"><i class="ti ti-checks" style="font-size:28px;display:block;margin-bottom:.5rem;"></i>Nenhum pendente em '+catAtivaInfo.nome+' hoje.</div>';
   } else {
     html+='<div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;margin-bottom:1rem;">';
-    html+='<div style="padding:.625rem 1rem;background:var(--bg3);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;"><span style="font-size:14px;font-weight:700;">'+catInfo.emoji+' '+catInfo.label+'</span><span style="font-size:12px;color:var(--text2);">'+grupo.length+' item'+(grupo.length!==1?'ns':'')+'</span></div>';
+    html+='<div style="padding:.625rem 1rem;background:var(--bg3);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;"><span style="font-size:14px;font-weight:700;">'+catAtivaInfo.emoji+' '+catAtivaInfo.nome+'</span><span style="font-size:12px;color:var(--text2);">'+grupo.length+' item'+(grupo.length!==1?'ns':'')+'</span></div>';
     grupo.forEach(p=>{
       html+=`<div style="border-bottom:1px solid var(--border);padding:.75rem 1rem;">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.625rem;">
@@ -2299,11 +2367,11 @@ function renderPendentesCat(){
 function renderPendentes(){
   const itens=itensPedido.filter(i=>i.lojaId===currentLojaId&&i.data===currentDate&&i.status==='pendente');
   el('listaPendentes').innerHTML=itens.length?itens.map(p=>`
-    <div class="item-row ${CAT_CLASS[p.categoria]}" style="cursor:default;">
+    <div class="item-row" style="cursor:default;border-left-color:${corCat(p.categoria)};">
       <div class="item-head" style="margin-bottom:.625rem;">
         <div>
           <div class="item-title" style="font-size:16px;font-weight:700;">${p.produto}</div>
-          <div class="item-meta" style="font-size:14px;font-weight:600;margin-top:3px;color:var(--text);">${p.qtd} ${p.tipo==='caixa'?'caixa':'unidade'}${p.qtd!==1?'s':''} previsto · <span style="color:var(--text2)">${CAT_LABEL[p.categoria]}</span></div>
+          <div class="item-meta" style="font-size:14px;font-weight:600;margin-top:3px;color:var(--text);">${p.qtd} ${p.tipo==='caixa'?'caixa':'unidade'}${p.qtd!==1?'s':''} previsto · <span style="color:var(--text2)">${labelCat(p.categoria)}</span></div>
         </div>
       </div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:.5rem;margin-bottom:.5rem;">
@@ -2397,10 +2465,10 @@ function saveEditCompra(id){
 }
 function renderCompras(){
   const my=compras.filter(c=>c.lojaId===currentLojaId&&c.data===currentDate);
-  const tot={fruta:0,legume:0,verdura:0};
+  const tot={};
   el('listaCompras').innerHTML=my.length?my.slice().reverse().map(c=>{
-    const total=c.qtd*c.valorUnit;tot[c.categoria]+=total;
-    return`<div class="item-row ${CAT_CLASS[c.categoria]}">
+    const total=c.qtd*c.valorUnit;tot[c.categoria]=(tot[c.categoria]||0)+total;
+    return`<div class="item-row" style="border-left-color:${corCat(c.categoria)};">
       <div class="item-head">
         <div><div class="item-title">${c.produto}${c.planejado?' <i class="ti ti-clipboard-check" style="font-size:12px;color:var(--text3)"></i>':''}</div>
         <div class="item-meta">${c.qtd} × ${fmt(c.valorUnit)} · ${c.fornecedor}</div></div>
@@ -2437,7 +2505,9 @@ function renderCompras(){
         </div>
       </div></div>`;
   }).join(''):`<div class="empty"><i class="ti ti-shopping-bag"></i>Nada comprado ainda.</div>`;
-  el('totFruta').textContent=fmt(tot.fruta);el('totLegume').textContent=fmt(tot.legume);el('totVerdura').textContent=fmt(tot.verdura);el('totDia').textContent=fmt(tot.fruta+tot.legume+tot.verdura);
+  const totGeral=Object.values(tot).reduce((a,v)=>a+v,0);
+  const cardsHtml=listaCatComFallback().map(c=>`<div class="stat"><div class="stat-label">${c.emoji} ${c.nome}</div><div class="stat-value">${fmt(tot[c.chave]||0)}</div></div>`).join('');
+  el('statGridCompras').innerHTML=cardsHtml+`<div class="stat" style="border-color:var(--accent-d);"><div class="stat-label" style="color:var(--accent);">Total do dia</div><div class="stat-value" style="color:var(--accent);" id="totDia">${fmt(totGeral)}</div></div>`;
 }
 
 /* ── FORNECEDORES ── */
@@ -2459,10 +2529,11 @@ async function salvarFornecedor(){
   if(!nome){showToast('Informe o nome do fornecedor');return;}
   if(editingFornId!==null){
     let found=null,foundCat=null;
-    ['fruta','legume','verdura'].forEach(c=>{const x=fornCustom[c].find(x=>x.id===editingFornId);if(x){found=x;foundCat=c;}});
+    Object.keys(fornCustom).forEach(c=>{const x=fornCustom[c].find(x=>x.id===editingFornId);if(x){found=x;foundCat=c;}});
     if(found){
       if(foundCat!==cat){
         fornCustom[foundCat]=fornCustom[foundCat].filter(x=>x.id!==editingFornId);
+        if(!fornCustom[cat])fornCustom[cat]=[];
         if(!fornCustom[cat].find(x=>x.nome===nome))fornCustom[cat].push({id:editingFornId,nome});
       } else {found.nome=nome;}
       const {error}=await db.from('fornecedores').update({nome,categoria:cat}).eq('id',editingFornId);
@@ -2474,6 +2545,7 @@ async function salvarFornecedor(){
     const todas=getAllFornByCat(cat);
     if(todas.find(x=>x.toLowerCase()===nome.toLowerCase())){showToast('Fornecedor já cadastrado nessa categoria');return;}
     const novo={id:nextId++,nome};
+    if(!fornCustom[cat])fornCustom[cat]=[];
     fornCustom[cat].push(novo);
     fornCustom[cat].sort((a,b)=>a.nome.localeCompare(b.nome,'pt-BR',{sensitivity:'base'}));
     showToast('Fornecedor "'+nome+'" adicionado!');
@@ -2526,7 +2598,7 @@ function removeForn(id,cat){
   db.from('fornecedores').delete().eq('id',id).then(({error})=>{if(error)showToast('Erro ao remover do banco: '+error.message);});
 }
 function renderFornecedoresCadastro(){
-  const CAT_LIST=[{k:'fruta',emoji:'🍊',label:'Frutas'},{k:'legume',emoji:'🥕',label:'Legumes'},{k:'verdura',emoji:'🥬',label:'Verduras'}];
+  const CAT_LIST=listaCatComFallback().map(c=>({k:c.chave,emoji:c.emoji,label:c.nome}));
   let html='';
   CAT_LIST.forEach(({k,emoji,label})=>{
     const lista=[...(fornCustom[k]||[])].sort((a,b)=>a.nome.localeCompare(b.nome,'pt-BR',{sensitivity:'base'}));
@@ -2583,7 +2655,7 @@ function renderFornecedores(){
   el('listaFornecedores').innerHTML=Object.keys(byF).length?Object.keys(byF).map(f=>{const d=byF[f];return`<div class="forn-card">
     <div class="forn-head">
       <span class="forn-name">${f}</span>
-      ${badge('badge-'+d.categoria,CAT_LABEL[d.categoria])}
+      ${badgeCat(d.categoria)}
     </div>
     <div class="forn-breakdown" style="margin-bottom:4px;">
       <div style="display:flex;gap:16px;flex-wrap:wrap;">
@@ -2785,6 +2857,7 @@ async function addNovaLoja(){
     const lojaObj={id:novaLoja.id,nome:novaLoja.nome,cidade:'',logo:'',cnpj:'',tel:'',endereco:''};
     lojas.push(lojaObj);
     renderLojas();
+    await carregarCategoriasConsolidado();
     showToast('Loja criada! Trial de 3 dias iniciado.');
     await selectLoja(lojaObj.id);
     switchTab('loja');
@@ -2950,11 +3023,13 @@ function switchGerenciarView(view){
   el('ger-produtos').style.display=view==='produtos'?'':'none';
   el('ger-fornecedores').style.display=view==='fornecedores'?'':'none';
   el('ger-despesas').style.display=view==='despesas'?'':'none';
-  document.querySelectorAll('#gerSubProdutos,#gerSubFornecedores,#gerSubDespesas').forEach(b=>b.classList.remove('active'));
+  el('ger-categorias').style.display=view==='categorias'?'':'none';
+  document.querySelectorAll('#gerSubProdutos,#gerSubFornecedores,#gerSubDespesas,#gerSubCategorias').forEach(b=>b.classList.remove('active'));
   el('gerSub'+view.charAt(0).toUpperCase()+view.slice(1)).classList.add('active');
   if(view==='produtos')renderGerenciarProdutos();
   if(view==='fornecedores')renderFornecedoresCadastro();
   if(view==='despesas')renderTiposDespesa();
+  if(view==='categorias')renderCategoriasCadastro();
 }
 let editingTipoDespesaId=null;
 async function renderTiposDespesa(){
@@ -3030,6 +3105,96 @@ async function excluirTipoDespesa(id,nome){
   }catch(e){showToast('Erro: '+e.message);}
 }
 
+/* ── CATEGORIAS ── */
+let editingCategoriaId=null;
+function renderCategoriasCadastro(){
+  const cont=el('listaCategorias');if(!cont)return;
+  if(!categoriasTodas.length){cont.innerHTML='<p style="font-size:13px;color:var(--text3);padding:.5rem 0;">Carregando…</p>';return;}
+  const ordenadas=[...categoriasTodas].sort((a,b)=>a.ordem-b.ordem);
+  cont.innerHTML=ordenadas.map((c,i)=>`<div class="data-card"${c.ativa?'':' style="opacity:.55;"'}>
+    <div style="display:flex;flex-direction:column;gap:2px;margin-right:4px;">
+      <button class="btn-ghost btn-sm" style="padding:2px 6px;" ${i===0?'disabled':''} onclick="moverCategoria(${c.id},-1)" title="Mover pra cima"><i class="ti ti-chevron-up"></i></button>
+      <button class="btn-ghost btn-sm" style="padding:2px 6px;" ${i===ordenadas.length-1?'disabled':''} onclick="moverCategoria(${c.id},1)" title="Mover pra baixo"><i class="ti ti-chevron-down"></i></button>
+    </div>
+    <div style="font-size:22px;">${c.emoji}</div>
+    <div style="flex:1;min-width:0;">
+      <p style="font-size:14px;font-weight:600;">${c.nome}</p>
+      <p style="font-size:12px;color:var(--text2);">${c.ativa?'Ativa':'Desativada'}</p>
+    </div>
+    <button class="btn-ghost btn-sm" onclick="editarCategoria(${c.id})" title="Editar"><i class="ti ti-edit"></i></button>
+    <button class="btn-ghost btn-sm" onclick="alternarCategoriaAtiva(${c.id},${!c.ativa})" title="${c.ativa?'Desativar':'Reativar'}"><i class="ti ti-${c.ativa?'eye-off':'eye'}"></i></button>
+  </div>`).join('');
+}
+async function adicionarCategoria(){
+  const nome=el('novaCategoriaNome').value.trim();
+  const emoji=el('novaCategoriaEmoji').value.trim()||'📦';
+  if(!nome){showToast('Informe o nome da categoria');return;}
+  if(editingCategoriaId!==null){
+    try{
+      const {error}=await db.from('categorias').update({nome,emoji}).eq('id',editingCategoriaId);
+      if(error){showToast('Erro ao salvar: '+error.message);return;}
+      showToast('Categoria atualizada!');
+      cancelEditCategoria();
+      await recarregarListasLoja();
+    }catch(e){showToast('Erro ao salvar: '+e.message);}
+    return;
+  }
+  const chave=slugifyCategoria(nome);
+  if(categoriasTodas.find(c=>c.chave===chave)){showToast('Já existe uma categoria parecida com esse nome');return;}
+  const ordem=categoriasTodas.length?Math.max(...categoriasTodas.map(c=>c.ordem))+1:1;
+  showToast('Criando categoria…');
+  try{
+    const {error}=await db.from('categorias').insert({loja_id:currentLojaId,chave,nome,emoji,ordem,ativa:true});
+    if(error){showToast('Erro ao criar categoria: '+error.message);return;}
+    el('novaCategoriaNome').value='';el('novaCategoriaEmoji').value='';
+    showToast('Categoria "'+nome+'" criada!');
+    await recarregarListasLoja();
+  }catch(e){showToast('Erro ao criar categoria: '+e.message);}
+}
+function editarCategoria(id){
+  const c=categoriasTodas.find(x=>x.id===id);if(!c)return;
+  editingCategoriaId=id;
+  el('novaCategoriaNome').value=c.nome;
+  el('novaCategoriaEmoji').value=c.emoji;
+  el('btnSalvarCategoria').innerHTML='<i class="ti ti-device-floppy"></i> Salvar alteração';
+  el('btnCancelCategoria').style.display='';
+  el('catFormTitle').textContent='Editar categoria';
+  el('novaCategoriaNome').scrollIntoView({behavior:'smooth',block:'center'});
+}
+function cancelEditCategoria(){
+  editingCategoriaId=null;
+  el('novaCategoriaNome').value='';el('novaCategoriaEmoji').value='';
+  el('btnSalvarCategoria').innerHTML='<i class="ti ti-plus"></i> Adicionar';
+  el('btnCancelCategoria').style.display='none';
+  el('catFormTitle').textContent='Adicionar categoria';
+}
+async function alternarCategoriaAtiva(id,novoValor){
+  if(!novoValor){
+    const ativasRestantes=categoriasTodas.filter(c=>c.ativa&&c.id!==id).length;
+    if(ativasRestantes===0){showToast('Você precisa manter ao menos 1 categoria ativa');return;}
+    if(!confirm('Desativar essa categoria? Ela deixa de aparecer nas abas de Pedidos/Compras, mas os dados já lançados continuam intactos.'))return;
+  }
+  try{
+    const {error}=await db.from('categorias').update({ativa:novoValor}).eq('id',id);
+    if(error){showToast('Erro: '+error.message);return;}
+    await recarregarListasLoja();
+    showToast(novoValor?'Categoria reativada!':'Categoria desativada.');
+  }catch(e){showToast('Erro: '+e.message);}
+}
+async function moverCategoria(id,direcao){
+  const ordenadas=[...categoriasTodas].sort((a,b)=>a.ordem-b.ordem);
+  const idx=ordenadas.findIndex(c=>c.id===id);
+  const outroIdx=idx+direcao;
+  if(idx===-1||outroIdx<0||outroIdx>=ordenadas.length)return;
+  const a=ordenadas[idx],b=ordenadas[outroIdx];
+  try{
+    const {error:e1}=await db.from('categorias').update({ordem:b.ordem}).eq('id',a.id);
+    const {error:e2}=await db.from('categorias').update({ordem:a.ordem}).eq('id',b.id);
+    if(e1||e2){showToast('Erro ao reordenar: '+((e1||e2).message));return;}
+    await recarregarListasLoja();
+  }catch(e){showToast('Erro ao reordenar: '+e.message);}
+}
+
 /* ── CHARTS ── */
 let chartSaldoInst=null;
 let relSemanaAtual=0; // índice 0-3
@@ -3098,9 +3263,9 @@ function exportarRelatorioPdf(modo){
 
     if(modo==='categoria'){
       const sems=[0,1,2,3].map(i=>calcRelTotals(getWeekBounds(i,currentDate).start,getWeekBounds(i,currentDate).end));
-      const cats=[{k:'fruta',label:'Frutas'},{k:'legume',label:'Legumes'},{k:'verdura',label:'Verduras'}];
+      const cats=listaCatComFallback().map(c=>({k:c.chave,label:c.nome}));
       const body=cats.map(c=>{
-        const vals=sems.map(s=>s[c.k]);
+        const vals=sems.map(s=>s[c.k]||0);
         const tot=vals.reduce((a,v)=>a+v,0);
         return [c.label,...vals.map(v=>fmt(v)),fmt(tot)];
       });
@@ -3115,12 +3280,11 @@ function exportarRelatorioPdf(modo){
       });
     } else {
       const dados=calcRelPorProdutoPorSemana(currentDate);
-      const labelCat={fruta:'Frutas',legume:'Legumes',verdura:'Verduras'};
       if(!dados.length){
         doc.setFontSize(11);
         doc.text('Nenhuma compra registrada nesse mês.',14,46);
       } else {
-        const body=dados.map(d=>[labelCat[d.categoria]||d.categoria,d.produto,...d.semanas.map(v=>v>0?fmt(v):'—'),fmt(d.total)]);
+        const body=dados.map(d=>[labelCat(d.categoria),d.produto,...d.semanas.map(v=>v>0?fmt(v):'—'),fmt(d.total)]);
         const totaisSemana=[0,1,2,3].map(i=>dados.reduce((a,d)=>a+d.semanas[i],0));
         const totalGeral=dados.reduce((a,d)=>a+d.total,0);
         body.push(['Total','',...totaisSemana.map(v=>fmt(v)),fmt(totalGeral)]);
@@ -3150,9 +3314,10 @@ function calcRelTotals(de,ate){
     const dt=h?h.data:currentDate;
     return dt>=de&&dt<=ate;
   });
-  let fruta=0,legume=0,verdura=0;
-  rows.forEach(c=>{const t=c.qtd*c.valorUnit;if(c.categoria==='fruta')fruta+=t;else if(c.categoria==='legume')legume+=t;else verdura+=t;});
-  return{fruta,legume,verdura,total:fruta+legume+verdura};
+  const tot={};
+  rows.forEach(c=>{const t=c.qtd*c.valorUnit;tot[c.categoria]=(tot[c.categoria]||0)+t;});
+  const total=Object.values(tot).reduce((a,v)=>a+v,0);
+  return{...tot,total};
 }
 
 function renderRelTotals(){
@@ -3162,22 +3327,17 @@ function renderRelTotals(){
   const meAte=mesRef+'-'+String(new Date(ano,mesN,0).getDate()).padStart(2,'0');
   // Totais mensais
   const mes=calcRelTotals(meDe,meAte);
-  el('rFrutaMes').textContent=fmt(mes.fruta);
-  el('rLegumeMes').textContent=fmt(mes.legume);
-  el('rVerduraMes').textContent=fmt(mes.verdura);
-  el('rTotalMes').textContent=fmt(mes.total);
+  const listaCat=listaCatComFallback();
+  el('statGridRelatorioMes').innerHTML=listaCat.map(c=>`<div class="stat"><div class="stat-label">${c.emoji} ${c.nome}/mês</div><div class="stat-value">${fmt(mes[c.chave]||0)}</div></div>`).join('')
+    +`<div class="stat" style="border-color:var(--accent-d);"><div class="stat-label" style="color:var(--accent);">Total/mês</div><div class="stat-value" style="color:var(--accent);" id="rTotalMes">${fmt(mes.total)}</div></div>`;
   // Tabela semanas x categoria
   const sems=[0,1,2,3].map(i=>calcRelTotals(getWeekBounds(i,currentDate).start,getWeekBounds(i,currentDate).end));
-  const cats=[
-    {k:'fruta', emoji:'🍊', label:'Frutas',  cor:'#ff7043'},
-    {k:'legume',emoji:'🥕', label:'Legumes', cor:'#66bb6a'},
-    {k:'verdura',emoji:'🥬',label:'Verduras',cor:'#26c6da'},
-  ];
+  const cats=listaCat.map(c=>({k:c.chave,emoji:c.emoji,label:c.nome,cor:corCat(c.chave)}));
   const totSems=sems.map(s=>s.total);
   const tBody=el('tabelaSemanasBody');
   if(!tBody)return;
   tBody.innerHTML=cats.map(c=>{
-    const vals=sems.map(s=>s[c.k]);
+    const vals=sems.map(s=>s[c.k]||0);
     const tot=vals.reduce((a,v)=>a+v,0);
     return`<tr style="border-bottom:1px solid var(--border);">
       <td style="padding:9px 14px;">
@@ -3210,13 +3370,12 @@ function initBarChart(){
   const isDark=document.documentElement.dataset.theme!=='light';
   const gridColor=isDark?'#2a342c':'#d0dbd0';const tickColor=isDark?'#9ab09c':'#4a6a4c';
   const semData=buildSemanalData();
+  const listaCatChart=listaCatComFallback();
   chartSemanalInst=new Chart(el('chartSemanal'),{
     type:'bar',
-    data:{labels:['Semana 1','Semana 2','Semana 3','Semana 4'],datasets:[
-      {label:'Frutas',data:semData.map(s=>s.fruta),backgroundColor:'#ff7043',borderRadius:4},
-      {label:'Legumes',data:semData.map(s=>s.legume),backgroundColor:'#66bb6a',borderRadius:4},
-      {label:'Verduras',data:semData.map(s=>s.verdura),backgroundColor:'#26c6da',borderRadius:4}
-    ]},
+    data:{labels:['Semana 1','Semana 2','Semana 3','Semana 4'],datasets:
+      listaCatChart.map(c=>({label:c.nome,data:semData.map(s=>s[c.chave]||0),backgroundColor:corCat(c.chave),borderRadius:4}))
+    },
     options:{responsive:true,maintainAspectRatio:false,
       scales:{
         x:{stacked:false,grid:{display:false},ticks:{color:tickColor,font:{size:11}}},
@@ -3773,10 +3932,17 @@ function fecharSetupProdutos(){
 }
 async function recarregarListasLoja(){
   if(setupLojaIdAtual!==currentLojaId)return;
+  await carregarCategorias();
   await carregarProdutos();
   try{
     const {data}=await db.from('fornecedores').select('*').eq('loja_id',currentLojaId).order('nome');
-    if(data){fornCustom={fruta:[],legume:[],verdura:[]};data.forEach(f=>{if(fornCustom[f.categoria])fornCustom[f.categoria].push({id:f.id,nome:f.nome});});}
+    if(data){
+      const novoForn={};
+      categoriasTodas.forEach(c=>{novoForn[c.chave]=[];});
+      ['fruta','legume','verdura'].forEach(c=>{if(!novoForn[c])novoForn[c]=[];});
+      data.forEach(f=>{if(!novoForn[f.categoria])novoForn[f.categoria]=[];novoForn[f.categoria].push({id:f.id,nome:f.nome});});
+      fornCustom=novoForn;
+    }
   }catch(e){}
   try{
     const {data}=await db.from('despesas_tipos').select('nome').eq('loja_id',currentLojaId).eq('ativo',true).order('nome');
@@ -3785,6 +3951,8 @@ async function recarregarListasLoja(){
   if(gerenciarViewAtual==='produtos')renderGerenciarProdutos();
   if(gerenciarViewAtual==='fornecedores')renderFornecedoresCadastro();
   if(gerenciarViewAtual==='despesas')renderTiposDespesa();
+  if(gerenciarViewAtual==='categorias')renderCategoriasCadastro();
+  renderTodosSeletoresCategoria();
 }
 async function escolherSetupProdutos(opcao){
   const tipo=setupFila[setupIndiceAtual];
@@ -3824,7 +3992,7 @@ async function escolherSetupProdutos(opcao){
 }
 function parseCsvGenerico(texto,tipo){
   const linhas=texto.split(/\r?\n/).map(l=>l.trim()).filter(l=>l.length>0);
-  const categoriasValidas=['fruta','legume','verdura'];
+  const categoriasValidas=categoriasTodas.length?categoriasTodas.map(c=>c.chave):['fruta','legume','verdura'];
   const resultado=[];const erros=[];
   linhas.forEach((linha,idx)=>{
     const partes=linha.split(',').map(p=>p.trim().replace(/^"|"$/g,''));
@@ -3882,9 +4050,16 @@ async function carregarProdutos(){
   try{
     const {data,error}=await db.from('produtos').select('categoria,nome').eq('loja_id',currentLojaId).eq('ativo',true).order('nome');
     if(error)return; // mantém o que já tinha carregado em caso de falha de rede
-    const novo={fruta:[],legume:[],verdura:[]};
-    (data||[]).forEach(p=>{if(novo[p.categoria])novo[p.categoria].push(p.nome);});
+    const novo={};
+    categoriasTodas.forEach(c=>{novo[c.chave]=[];});
+    ['fruta','legume','verdura'].forEach(c=>{if(!novo[c])novo[c]=[];});
+    (data||[]).forEach(p=>{if(!novo[p.categoria])novo[p.categoria]=[];novo[p.categoria].push(p.nome);});
     PRODUTOS=novo;
+    Object.keys(PRODUTOS).forEach(cat=>{
+      if(!tabelaDraft[cat])tabelaDraft[cat]={};
+      if(!tabelaDraftTipo[cat])tabelaDraftTipo[cat]={};
+      if(!tabelaDraftUnid[cat])tabelaDraftUnid[cat]={};
+    });
   }catch(e){}
 }
 let editingProdutoId=null;
@@ -3904,9 +4079,8 @@ async function renderRelatorioSemanalPedidos(){
       porProduto[key].qtd+=item.qtd;
     });
     const linhas=Object.values(porProduto).sort((a,b)=>a.categoria.localeCompare(b.categoria)||a.produto.localeCompare(b.produto,'pt-BR'));
-    const emojis={fruta:'🍊',legume:'🥕',verdura:'🥬'};
     cont.innerHTML=`<p style="font-size:13px;font-weight:700;margin-bottom:.625rem;">📋 Quantidade pedida — últimos 7 dias (${formatBR(de)} a ${formatBR(currentDate)})</p>`+
-      (linhas.length?linhas.map(l=>`<div style="display:flex;justify-content:space-between;font-size:13px;padding:4px 0;border-bottom:1px solid var(--border);"><span>${emojis[l.categoria]||''} ${l.produto}</span><strong>${l.qtd}</strong></div>`).join(''):'<p style="font-size:12px;color:var(--text2);">Nenhum pedido nesses 7 dias.</p>');
+      (linhas.length?linhas.map(l=>`<div style="display:flex;justify-content:space-between;font-size:13px;padding:4px 0;border-bottom:1px solid var(--border);"><span>${emojiCat(l.categoria)} ${l.produto}</span><strong>${l.qtd}</strong></div>`).join(''):'<p style="font-size:12px;color:var(--text2);">Nenhum pedido nesses 7 dias.</p>');
   }catch(e){cont.innerHTML='<p style="font-size:13px;color:var(--red);">Erro ao carregar relatório.</p>';}
 }
 /* ── VISÃO DO COMPRADOR (consolidada entre lojas vinculadas) ── */
@@ -3951,7 +4125,7 @@ async function exportarProdutosCsv(){
 }
 function exportarFornecedoresCsv(){
   const linhas=[['nome','categoria']];
-  ['fruta','legume','verdura'].forEach(cat=>{(fornCustom[cat]||[]).forEach(f=>linhas.push([f.nome,cat]));});
+  Object.keys(fornCustom).forEach(cat=>{(fornCustom[cat]||[]).forEach(f=>linhas.push([f.nome,cat]));});
   baixarCsv('fornecedores.csv',linhas);
   showToast('CSV exportado!');
 }
@@ -3976,7 +4150,6 @@ async function exportarRelatorioCompradorPdf(){
     const {data,error}=await db.from('itens_pedido').select('*').in('loja_id',idsLojas).eq('data',currentDate).eq('status','pendente');
     if(error){showToast('Erro ao gerar: '+error.message);return;}
     if(!data||!data.length){showToast('Nenhum pedido pendente nessa data.');return;}
-    const emojisTxt={fruta:'Frutas',legume:'Legumes',verdura:'Verduras'};
     const {jsPDF}=window.jspdf;
     const doc=new jsPDF();
     let primeira=true;
@@ -3993,7 +4166,7 @@ async function exportarRelatorioCompradorPdf(){
       doc.setTextColor(0);
       doc.setFontSize(13);
       doc.text(loja.nome,14,36);
-      const body=itensLoja.map(i=>[emojisTxt[i.categoria]||i.categoria,i.produto,String(i.qtd)+(i.tipo==='caixa'?' cx':' un')]);
+      const body=itensLoja.map(i=>[labelCat(i.categoria,categoriasConsolidado),i.produto,String(i.qtd)+(i.tipo==='caixa'?' cx':' un')]);
       doc.autoTable({
         startY:40,
         head:[['Categoria','Produto','Qtd']],
@@ -4127,12 +4300,11 @@ async function renderGerenciarProdutos(){
     if(error){cont.innerHTML='<div class="empty">Erro ao carregar produtos.</div>';return;}
     const catFiltro=el('gerProdCatFilter')?el('gerProdCatFilter').value:'';
     const busca=(el('gerProdBusca')?el('gerProdBusca').value:'').toLowerCase();
-    const emojis={fruta:'🍊',legume:'🥕',verdura:'🥬'};
     const filtrados=(data||[]).filter(p=>(!catFiltro||p.categoria===catFiltro)&&(!busca||p.nome.toLowerCase().includes(busca)));
     if(!filtrados.length){cont.innerHTML='<div class="empty"><i class="ti ti-apple"></i>Nenhum produto encontrado. Adicione um acima, ou ajuste os filtros.</div>';return;}
     cont.innerHTML=filtrados.map(p=>`<div class="data-card"${p.ativo?'':' style="opacity:.55;"'}>
       <div style="flex:1;min-width:0;">
-        <p style="font-size:14px;font-weight:600;">${emojis[p.categoria]||''} ${p.nome}</p>
+        <p style="font-size:14px;font-weight:600;">${emojiCat(p.categoria)} ${p.nome}</p>
         <p style="font-size:12px;color:var(--text2);">${p.ativo?'Ativo':'Desativado'}</p>
       </div>
       <button class="btn-ghost btn-sm" onclick="editProduto(${p.id},'${p.nome.replace(/'/g,"\\'")}','${p.categoria}')" title="Editar"><i class="ti ti-edit"></i></button>
@@ -4197,6 +4369,7 @@ async function excluirProduto(id,nome){
 
 async function carregarDadosDaLoja(){
   if(!currentLojaId)return;
+  await carregarCategorias();
   await carregarProdutos();
   try{
     // Carrega dados atualizados da loja
@@ -4277,11 +4450,15 @@ async function carregarDadosDaLoja(){
     const {data:fornData,error:fornErr}=await db.from('fornecedores')
       .select('*').eq('loja_id',currentLojaId).order('nome');
     if(!fornErr&&fornData){
-      fornCustom={fruta:[],legume:[],verdura:[]};
+      const novoForn={};
+      categoriasTodas.forEach(c=>{novoForn[c.chave]=[];});
+      ['fruta','legume','verdura'].forEach(c=>{if(!novoForn[c])novoForn[c]=[];});
       fornData.forEach(f=>{
         const cat=f.categoria;
-        if(fornCustom[cat])fornCustom[cat].push({id:f.id,nome:f.nome});
+        if(!novoForn[cat])novoForn[cat]=[];
+        novoForn[cat].push({id:f.id,nome:f.nome});
       });
+      fornCustom=novoForn;
     }
 
     // Margens customizadas
@@ -4360,8 +4537,9 @@ function init(){
   const fdDe=el('fornDataDe');if(fdDe)fdDe.value=currentDate;
   const fdAte=el('fornDataAte');if(fdAte)fdAte.value=currentDate;
   el('despesaList').innerHTML=DESPESAS_TIPO.map(t=>`<option value="${t}">`).join('');
+  renderTodosSeletoresCategoria();
   populateProdutos('catPlan','prodPlan');populateProdutos('catAvulso','prodAvulso');populateFornecedores('catAvulso','fornAvulsoList');
-  refreshHeadings();renderHistorico();renderAll();switchCatTabela('fruta');
+  refreshHeadings();renderHistorico();renderAll();switchCatTabela(listaCatComFallback()[0].chave);
   populateInvLoja();renderUsuarios();renderLojas();initColorSwatches();renderFornecedoresCadastro();
   switchTab('home');
   renderAssinatura();
@@ -4407,12 +4585,11 @@ function renderHistoricoCompras(){
   el('histTotForn').textContent=fornSet.size;
   el('histTotItens').textContent=prodSet.size;
 
-  const CAT_DOT={fruta:'#ff7043',legume:'#66bb6a',verdura:'#26c6da'};
   el('histTableBody').innerHTML=rows.length?rows.map(r=>`
     <tr style="border-bottom:1px solid var(--border);transition:background .1s;" onmouseover="this.style.background='var(--bg3)'" onmouseout="this.style.background=''">
       <td style="padding:8px 12px;">
         <div style="display:flex;align-items:center;gap:7px;">
-          <div style="width:8px;height:8px;border-radius:50%;background:${CAT_DOT[r.categoria]||'var(--border2)'};flex-shrink:0;"></div>
+          <div style="width:8px;height:8px;border-radius:50%;background:${corCat(r.categoria)};flex-shrink:0;"></div>
           <span style="font-size:13px;font-weight:500;">${r.produto}</span>
         </div>
       </td>
@@ -4527,7 +4704,6 @@ function renderPrecosMedia(){
   window._precosPidMap={};
   rows.forEach(r=>{window._precosPidMap[r.produto.replace(/[^a-z0-9]/gi,'_')]=r.produto;});
 
-  const CAT_DOT={fruta:'#ff7043',legume:'#66bb6a',verdura:'#26c6da'};
   el('precosTableBody').innerHTML=rows.length?rows.map(r=>{
     const mc       = margemCustom[r.produto];
     const isCustom = !!mc;
@@ -4543,7 +4719,7 @@ function renderPrecosMedia(){
     return `<tr data-prod="${r.produto.replace(/"/g,'&quot;')}" style="border-bottom:1px solid var(--border);${rowBg}">
   <td style="padding:8px 10px;min-width:130px;">
     <div style="display:flex;align-items:center;gap:7px;">
-      <div style="width:8px;height:8px;border-radius:50%;background:${CAT_DOT[r.categoria]||'#888'};flex-shrink:0;"></div>
+      <div style="width:8px;height:8px;border-radius:50%;background:${corCat(r.categoria)};flex-shrink:0;"></div>
       <div>
         <div style="font-size:13px;font-weight:500;">${r.produto}</div>
         ${r.temUnid?`<div style="font-size:10px;color:var(--text3)">cx: ${fmt(r.mediaCx)}</div>`:''}
