@@ -1167,7 +1167,38 @@ button{font-family:inherit;font-size:14px;font-weight:600;cursor:pointer;border-
 
 </div>
 
-<!-- SUB MANAGER MODAL -->
+<!-- NOVA LOJA MODAL -->
+<div class="modal-overlay" id="novaLojaModal" onclick="if(event.target===this)fecharNovaLojaModal()">
+  <div class="modal-box">
+    <div class="modal-head"><span class="modal-title"><i class="ti ti-building-store"></i> Nova loja</span><button class="btn-icon" onclick="fecharNovaLojaModal()"><i class="ti ti-x" style="font-size:18px;"></i></button></div>
+    <div style="display:flex;gap:1rem;align-items:flex-start;margin-bottom:1rem;flex-wrap:wrap;">
+      <div>
+        <div class="logo-upload" onclick="document.getElementById('novaLojaLogoInput').click()">
+          <img id="novaLojaLogoPreview" src="" style="display:none;"/>
+          <i class="ti ti-photo" id="novaLojaLogoIcon"></i>
+        </div>
+        <input type="file" id="novaLojaLogoInput" accept="image/*" style="display:none;" onchange="previewLogoNovaLoja(this)"/>
+        <p style="font-size:11px;color:var(--text3);margin-top:4px;text-align:center;">Logo</p>
+      </div>
+      <div style="flex:1;min-width:200px;display:flex;flex-direction:column;gap:.625rem;">
+        <div class="field-group"><label>Nome da loja *</label><input id="novaLojaNome" placeholder="Ex: Hortifruti Central"/></div>
+        <div class="field-group"><label>Endereço</label><input id="novaLojaEndereco" placeholder="Rua, número, bairro"/></div>
+        <div class="field-row" style="margin:0;">
+          <div class="field-group" style="margin:0;"><label>Cidade</label><input id="novaLojaCidade" placeholder="Cidade"/></div>
+          <div class="field-group" style="margin:0;"><label>CNPJ / CPF *</label><input id="novaLojaCnpj" placeholder="00.000.000/0001-00"/></div>
+        </div>
+        <div class="field-group"><label>Telefone</label><input id="novaLojaTel" placeholder="(11) 99999-9999"/></div>
+        <p style="font-size:11px;color:var(--text3);margin:0;">* Nome e CNPJ/CPF são obrigatórios — o CNPJ/CPF é exigido pelo Asaas pra gerar a cobrança da assinatura dessa loja.</p>
+      </div>
+    </div>
+    <div style="display:flex;gap:.5rem;">
+      <button class="btn-primary" style="flex:1;" onclick="criarNovaLojaSubmit()"><i class="ti ti-plus"></i> Criar loja</button>
+      <button class="btn-ghost" onclick="fecharNovaLojaModal()">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+
 <div class="modal-overlay" id="subManagerModal" onclick="if(event.target===this)el('subManagerModal').classList.remove('open')">
   <div class="modal-box">
     <div class="modal-head"><span class="modal-title"><i class="ti ti-credit-card"></i> Assinatura</span><button class="btn-icon" onclick="el('subManagerModal').classList.remove('open')"><i class="ti ti-x" style="font-size:18px;"></i></button></div>
@@ -2889,25 +2920,47 @@ async function excluirLoja(id){
   else{renderLojas();}
   showToast('Loja excluída — dados preservados, acesso bloqueado.');
 }
-async function addNovaLoja(){
+function previewLogoNovaLoja(inp){
+  const f=inp.files[0];if(!f)return;
+  const r=new FileReader();r.onload=e=>{el('novaLojaLogoPreview').src=e.target.result;el('novaLojaLogoPreview').style.display='';el('novaLojaLogoIcon').style.display='none';};r.readAsDataURL(f);
+}
+function addNovaLoja(){
   if(!confirm('Criar uma nova loja gera uma cobrança mensal própria pra ela (depois do trial de 3 dias). Quer continuar?'))return;
   const numeroDaLoja=lojas.length+1;
   if(numeroDaLoja%5===0){
     if(!confirm('Essa vai ser a sua '+numeroDaLoja+'ª loja. Só confirmando: é isso mesmo que você quer criar?'))return;
   }
-  const nomeLoja=`Loja ${String(numeroDaLoja).padStart(2,'0')}`;
+  el('novaLojaNome').value=`Loja ${String(numeroDaLoja).padStart(2,'0')}`;
+  el('novaLojaEndereco').value='';el('novaLojaCidade').value='';el('novaLojaCnpj').value='';el('novaLojaTel').value='';
+  el('novaLojaLogoPreview').style.display='none';el('novaLojaLogoIcon').style.display='';
+  el('novaLojaLogoInput').value='';
+  el('novaLojaModal').classList.add('open');
+  setTimeout(()=>el('novaLojaNome').focus(),100);
+}
+function fecharNovaLojaModal(){el('novaLojaModal').classList.remove('open');}
+async function criarNovaLojaSubmit(){
+  const nome=el('novaLojaNome').value.trim();
+  const cnpj=el('novaLojaCnpj').value.trim();
+  if(!nome){showToast('Preencha o nome da loja');el('novaLojaNome').focus();return;}
+  if(!cnpj){showToast('Preencha o CNPJ ou CPF — o Asaas exige isso pra gerar a cobrança da assinatura');el('novaLojaCnpj').focus();return;}
+  const endereco=el('novaLojaEndereco').value.trim();
+  const cidade=el('novaLojaCidade').value.trim();
+  const tel=el('novaLojaTel').value.trim();
+  const logo=el('novaLojaLogoPreview').style.display!=='none'?el('novaLojaLogoPreview').src:'';
   showToast('Criando loja…');
   try{
-    const {data:novaLoja,error}=await db.from('lojas').insert({nome:nomeLoja}).select().single();
+    const {data:novaLoja,error}=await db.from('lojas').insert({
+      nome,endereco:endereco||null,cidade:cidade||null,cnpj:cnpj||null,tel:tel||null,logo:logo||null
+    }).select().single();
     if(error){showToast('Erro ao criar loja: '+error.message);return;}
-    const lojaObj={id:novaLoja.id,nome:novaLoja.nome,cidade:'',logo:'',cnpj:'',tel:'',endereco:''};
+    const lojaObj={id:novaLoja.id,nome:novaLoja.nome,cidade:cidade,logo:logo,cnpj:cnpj,tel:tel,endereco:endereco};
     lojas.push(lojaObj);
+    fecharNovaLojaModal();
     renderLojas();
     await carregarCategoriasConsolidado();
-    showToast('Loja criada! Trial de 3 dias iniciado.');
+    showToast('Loja "'+nome+'" criada! Trial de 3 dias iniciado.');
     await selectLoja(lojaObj.id);
     switchTab('loja');
-    editLoja(lojaObj.id);
     setTimeout(()=>iniciarSetupLoja(lojaObj.id),400);
   }catch(e){showToast('Erro ao criar loja: '+e.message);}
 }
