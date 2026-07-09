@@ -3891,16 +3891,16 @@ const SETUP_CFG={
     titulo:'<i class="ti ti-apple"></i> Base de produtos da loja',
     pergunta:'Como você quer começar a lista de produtos (frutas, legumes, verduras)?',
     pronta:'Usar nossa base pronta (142 produtos)',
-    csvInstrucao:'Arquivo <strong>.csv</strong> com 2 colunas: <strong>nome</strong> e <strong>categoria</strong> (fruta, legume ou verdura). Exemplo:',
-    csvExemplo:'nome,categoria\nAbacate Avocado,fruta\nCenoura,legume\nAlface Crespa,verdura',
+    csvInstrucao:'Arquivo <strong>.csv</strong> com 2 colunas: <strong>nome</strong> e <strong>categoria</strong> (use o nome da categoria como aparece na tela, ex: Frutas). Exemplo:',
+    csvExemplo:'nome;categoria\nAbacate Avocado;Frutas\nCenoura;Legumes\nAlface Crespa;Verduras',
     concluido:'Cadastre produtos quando quiser em Gerenciar → Produtos.'
   },
   fornecedores:{
     titulo:'<i class="ti ti-truck"></i> Base de fornecedores da loja',
     pergunta:'Como você quer começar a lista de fornecedores?',
     pronta:'Usar nossa base pronta (50 fornecedores)',
-    csvInstrucao:'Arquivo <strong>.csv</strong> com 2 colunas: <strong>nome</strong> e <strong>categoria</strong> (fruta, legume ou verdura). Exemplo:',
-    csvExemplo:'nome,categoria\nAgro sul,fruta\nAquilino,legume\nAquira,verdura',
+    csvInstrucao:'Arquivo <strong>.csv</strong> com 2 colunas: <strong>nome</strong> e <strong>categoria</strong> (use o nome da categoria como aparece na tela, ex: Frutas). Exemplo:',
+    csvExemplo:'nome;categoria\nAgro sul;Frutas\nAquilino;Legumes\nAquira;Verduras',
     concluido:'Cadastre fornecedores quando quiser em Gerenciar → Fornecedores.'
   },
   despesas:{
@@ -4196,8 +4196,8 @@ function baixarModeloCsv(tipo){
 function baixarCsv(nomeArquivo,linhas){
   const conteudo=linhas.map(l=>l.map(v=>{
     const s=String(v??'');
-    return /[",\n]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s;
-  }).join(',')).join('\r\n');
+    return /[;",\n]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s;
+  }).join(';')).join('\r\n');
   const blob=new Blob(['\uFEFF'+conteudo],{type:'text/csv;charset=utf-8;'});
   const url=URL.createObjectURL(blob);
   const a=document.createElement('a');
