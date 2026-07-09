@@ -1664,6 +1664,7 @@ function toggleSidebar(){
   el('sidebar').classList.toggle('open',sidebarOpen);
   const bd=el('sidebarBackdrop');if(bd)bd.classList.toggle('open',sidebarOpen);
   document.body.classList.toggle('sidebar-locked',sidebarOpen);
+  localStorage.setItem('ceasa_sidebar_open',sidebarOpen?'1':'0');
 }
 
 /* ── STORE MODAL (centralizado) ── */
@@ -3999,7 +4000,7 @@ function fecharSetupProdutos(){
   setupLojaIdAtual=null;setupFila=[];setupIndiceAtual=0;
 }
 async function recarregarListasLoja(){
-  if(setupLojaIdAtual!==currentLojaId)return;
+  if(setupLojaIdAtual!==null&&setupLojaIdAtual!==currentLojaId)return;
   await carregarCategorias();
   await carregarProdutos();
   try{
@@ -4759,6 +4760,9 @@ function init(){
   let abaSalva=localStorage.getItem('ceasa_last_tab')||'home';
   if(!ALL_TABS.includes(abaSalva)||!abaRestauravelParaUsuario(abaSalva))abaSalva='home';
   switchTab(abaSalva);
+  if(localStorage.getItem('ceasa_sidebar_open')==='1'&&!sidebarOpen&&!window.matchMedia('(max-width:768px)').matches){
+    toggleSidebar();
+  }
   renderAssinatura();
 }
 
