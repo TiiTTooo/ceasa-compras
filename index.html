@@ -986,6 +986,9 @@ button{font-family:inherit;font-size:14px;font-weight:600;cursor:pointer;border-
             </select>
             <input type="text" id="gerProdBusca" placeholder="Buscar produto…" oninput="renderGerenciarProdutos()" style="flex:2;min-width:140px;"/>
           </div>
+          <div id="btnExcluirCatWrap" style="display:none;margin-bottom:.625rem;">
+            <button class="btn-danger-soft btn-sm" onclick="excluirTodosProdutosCategoria()"><i class="ti ti-trash"></i> Excluir todos os produtos desta categoria</button>
+          </div>
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.375rem;gap:8px;flex-wrap:wrap;">
             <button class="btn-ghost btn-sm" onclick="baixarModeloCsv('produtos')" style="font-size:12px;"><i class="ti ti-download"></i> Baixar modelo de planilha</button>
             <button class="btn-ghost btn-sm" onclick="exportarProdutosCsv()"><i class="ti ti-file-spreadsheet"></i> Exportar tabela (CSV)</button>
@@ -4033,33 +4036,62 @@ function detectarDelimitadorCsv(primeiraLinha){
   const qtdPontoVirgula=(primeiraLinha.match(/;/g)||[]).length;
   return qtdPontoVirgula>qtdVirgula?';':',';
 }
-function parseCsvGenerico(texto,tipo){
+function tituloBonito(s){
+  return (s||'').toLowerCase().replace(/(^|\s)\S/g,c=>c.toUpperCase());
+}
+function parseCsvBruto(texto,tipo){
   const linhas=texto.split(/\r?\n/).map(l=>l.trim()).filter(l=>l.length>0);
-  if(!linhas.length)return{resultado:[],erros:[]};
+  if(!linhas.length)return[];
   const delim=detectarDelimitadorCsv(linhas[0]);
-  const resultado=[];const erros=[];
+  const out=[];
   linhas.forEach((linha,idx)=>{
     const partes=linha.split(delim).map(p=>p.trim().replace(/^"|"$/g,''));
     if(tipo==='despesas'){
       const nome=partes[0];
       if(idx===0&&(nome||'').toLowerCase()==='nome')return;
       if(!nome)return;
-      resultado.push({nome});
+      out.push({nome});
     } else {
       if(partes.length<2)return;
       const [nome,categoriaRaw]=partes;
       if(idx===0&&nome.toLowerCase()==='nome'&&(categoriaRaw||'').toLowerCase()==='categoria')return;
       if(!nome)return;
-      const categoria=resolverCategoriaPorTexto(categoriaRaw);
-      if(!categoria){
-        const nomesValidos=(categoriasTodas.length?categoriasTodas:[]).map(c=>c.nome).join(', ');
-        erros.push(`Linha ${idx+1}: categoria "${categoriaRaw}" não corresponde a nenhuma categoria cadastrada${nomesValidos?' ('+nomesValidos+')':''}`);
-        return;
-      }
-      resultado.push({nome,categoria});
+      out.push({nome,categoriaRaw});
     }
   });
-  return {resultado,erros};
+  return out;
+}
+// Cria automaticamente, no banco, qualquer categoria mencionada no CSV que ainda não exista na loja
+async function garantirCategoriasDoImport(brutas,lojaId){
+  const naoResolvidas=new Map();
+  brutas.forEach(r=>{
+    if(r.categoriaRaw===undefined)return;
+    if(!resolverCategoriaPorTexto(r.categoriaRaw)){
+      const norm=normalizarTextoSimples(r.categoriaRaw);
+      if(norm&&!naoResolvidas.has(norm))naoResolvidas.set(norm,r.categoriaRaw);
+    }
+  });
+  if(!naoResolvidas.size)return{criadas:0,erro:null};
+  let ordem=categoriasTodas.length?Math.max(...categoriasTodas.map(c=>c.ordem)):0;
+  const novasLinhas=[...naoResolvidas.values()].map(txt=>{
+    ordem++;
+    return{loja_id:lojaId,chave:slugifyCategoria(txt),nome:tituloBonito(txt),emoji:'📦',ordem,ativa:true};
+  });
+  const {error}=await db.from('categorias').upsert(novasLinhas,{onConflict:'loja_id,chave'});
+  if(error)return{criadas:0,erro:error};
+  const {data}=await db.from('categorias').select('*').eq('loja_id',lojaId).order('ordem');
+  if(data){categoriasTodas=data;categorias=categoriasTodas.filter(c=>c.ativa);}
+  return{criadas:novasLinhas.length,erro:null};
+}
+function resolverLinhasImport(brutas,tipo){
+  const resultado=[];const erros=[];
+  brutas.forEach((r,idx)=>{
+    if(tipo==='despesas'){resultado.push({nome:r.nome});return;}
+    const categoria=resolverCategoriaPorTexto(r.categoriaRaw);
+    if(!categoria){erros.push(`Linha ${idx+2}: categoria "${r.categoriaRaw}" não pôde ser criada`);return;}
+    resultado.push({nome:r.nome,categoria});
+  });
+  return{resultado,erros};
 }
 async function importarSetupCsv(){
   const tipo=setupFila[setupIndiceAtual];
@@ -4070,7 +4102,15 @@ async function importarSetupCsv(){
   statusEl.style.display='block';statusEl.textContent='Lendo arquivo…';
   try{
     const texto=await lerArquivoTextoAuto(fileInput.files[0]);
-    const {resultado,erros}=parseCsvGenerico(texto,tipo);
+    const brutas=parseCsvBruto(texto,tipo);
+    if(!brutas.length){statusEl.textContent='Nenhum item válido encontrado no arquivo. Confira o formato do CSV.';return;}
+    if(tipo!=='despesas'){
+      statusEl.textContent='Conferindo categorias…';
+      const{criadas,erro}=await garantirCategoriasDoImport(brutas,setupLojaIdAtual);
+      if(erro){statusEl.textContent='Erro ao criar categorias novas: '+erro.message;return;}
+      if(criadas)statusEl.textContent=`${criadas} categoria(s) nova(s) criada(s) automaticamente…`;
+    }
+    const {resultado,erros}=resolverLinhasImport(brutas,tipo);
     if(!resultado.length){statusEl.textContent=erros.length?erros[0]:'Nenhum item válido encontrado no arquivo. Confira o formato do CSV.';return;}
     statusEl.textContent=`Importando ${resultado.length} item(ns)…`;
     let error;
@@ -4101,7 +4141,14 @@ async function importarCsvGerenciar(tipo){
   showToast('Lendo arquivo…');
   try{
     const texto=await lerArquivoTextoAuto(fileInput.files[0]);
-    const {resultado,erros}=parseCsvGenerico(texto,tipo);
+    const brutas=parseCsvBruto(texto,tipo);
+    if(!brutas.length){showToast('Nenhum item válido encontrado no arquivo. Confira o formato do CSV.');return;}
+    if(tipo!=='despesas'){
+      const{criadas,erro}=await garantirCategoriasDoImport(brutas,currentLojaId);
+      if(erro){showToast('Erro ao criar categorias novas: '+erro.message);return;}
+      if(criadas){showToast(`${criadas} categoria(s) nova(s) criada(s) automaticamente!`);renderTodosSeletoresCategoria();}
+    }
+    const {resultado,erros}=resolverLinhasImport(brutas,tipo);
     if(!resultado.length){
       showToast(erros.length?erros[0]:'Nenhum item válido encontrado no arquivo. Confira o formato do CSV.');
       return;
@@ -4392,6 +4439,16 @@ async function renderGerenciarProdutos(){
     const catFiltro=el('gerProdCatFilter')?el('gerProdCatFilter').value:'';
     const busca=(el('gerProdBusca')?el('gerProdBusca').value:'').toLowerCase();
     const filtrados=(data||[]).filter(p=>(!catFiltro||p.categoria===catFiltro)&&(!busca||p.nome.toLowerCase().includes(busca)));
+    const wrapExcluirCat=el('btnExcluirCatWrap');
+    if(wrapExcluirCat){
+      if(catFiltro){
+        const qtdNaCategoria=(data||[]).filter(p=>p.categoria===catFiltro).length;
+        wrapExcluirCat.style.display=qtdNaCategoria?'':'none';
+        wrapExcluirCat.innerHTML=`<button class="btn-danger-soft btn-sm" onclick="excluirTodosProdutosCategoria()"><i class="ti ti-trash"></i> Excluir os ${qtdNaCategoria} produtos de ${labelCat(catFiltro)}</button>`;
+      } else {
+        wrapExcluirCat.style.display='none';
+      }
+    }
     if(!filtrados.length){cont.innerHTML='<div class="empty"><i class="ti ti-apple"></i>Nenhum produto encontrado. Adicione um acima, ou ajuste os filtros.</div>';return;}
     cont.innerHTML=filtrados.map(p=>`<div class="data-card"${p.ativo?'':' style="opacity:.55;"'}>
       <div style="flex:1;min-width:0;">
@@ -4403,6 +4460,22 @@ async function renderGerenciarProdutos(){
       <button class="btn-danger-soft btn-sm" onclick="excluirProduto(${p.id},'${p.nome.replace(/'/g,"\\'")}')" title="Excluir"><i class="ti ti-trash"></i></button>
     </div>`).join('');
   }catch(e){cont.innerHTML='<div class="empty">Erro ao carregar produtos.</div>';}
+}
+async function excluirTodosProdutosCategoria(){
+  const catFiltro=el('gerProdCatFilter')?el('gerProdCatFilter').value:'';
+  if(!catFiltro)return;
+  try{
+    const {data,error:errCount}=await db.from('produtos').select('id').eq('loja_id',currentLojaId).eq('categoria',catFiltro);
+    if(errCount){showToast('Erro: '+errCount.message);return;}
+    const qtd=(data||[]).length;
+    if(!qtd){showToast('Não há produtos nessa categoria.');return;}
+    if(!confirm(`Excluir todos os ${qtd} produtos da categoria "${labelCat(catFiltro)}"? Pedidos e compras já feitos não são afetados. Essa ação não pode ser desfeita.`))return;
+    const {error}=await db.from('produtos').delete().eq('loja_id',currentLojaId).eq('categoria',catFiltro);
+    if(error){showToast('Erro ao excluir: '+error.message);return;}
+    await carregarProdutos();
+    renderGerenciarProdutos();
+    showToast(`${qtd} produto(s) excluído(s) da categoria ${labelCat(catFiltro)}.`);
+  }catch(e){showToast('Erro ao excluir: '+e.message);}
 }
 function editProduto(id,nome,categoria){
   editingProdutoId=id;
