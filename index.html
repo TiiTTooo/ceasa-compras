@@ -1055,6 +1055,28 @@ button{font-family:inherit;font-size:14px;font-weight:600;cursor:pointer;border-
               <input type="text" id="novaCategoriaEmoji" placeholder="Emoji (ex: 🧂)" maxlength="4" style="flex:0 0 90px;text-align:center;font-size:18px;"/>
               <input type="text" id="novaCategoriaNome" placeholder="Nome da categoria (ex: Temperos)"/>
             </div>
+            <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:.75rem;">
+              <button type="button" class="btn-ghost btn-sm" onclick="selecionarEmojiCategoria('🍊')" style="font-size:18px;padding:4px 10px;">🍊</button>
+              <button type="button" class="btn-ghost btn-sm" onclick="selecionarEmojiCategoria('🥕')" style="font-size:18px;padding:4px 10px;">🥕</button>
+              <button type="button" class="btn-ghost btn-sm" onclick="selecionarEmojiCategoria('🥬')" style="font-size:18px;padding:4px 10px;">🥬</button>
+              <button type="button" class="btn-ghost btn-sm" onclick="selecionarEmojiCategoria('🧂')" style="font-size:18px;padding:4px 10px;">🧂</button>
+              <button type="button" class="btn-ghost btn-sm" onclick="selecionarEmojiCategoria('🥔')" style="font-size:18px;padding:4px 10px;">🥔</button>
+              <button type="button" class="btn-ghost btn-sm" onclick="selecionarEmojiCategoria('🥚')" style="font-size:18px;padding:4px 10px;">🥚</button>
+              <button type="button" class="btn-ghost btn-sm" onclick="selecionarEmojiCategoria('🧀')" style="font-size:18px;padding:4px 10px;">🧀</button>
+              <button type="button" class="btn-ghost btn-sm" onclick="selecionarEmojiCategoria('🥩')" style="font-size:18px;padding:4px 10px;">🥩</button>
+              <button type="button" class="btn-ghost btn-sm" onclick="selecionarEmojiCategoria('🐟')" style="font-size:18px;padding:4px 10px;">🐟</button>
+              <button type="button" class="btn-ghost btn-sm" onclick="selecionarEmojiCategoria('🍞')" style="font-size:18px;padding:4px 10px;">🍞</button>
+              <button type="button" class="btn-ghost btn-sm" onclick="selecionarEmojiCategoria('🌾')" style="font-size:18px;padding:4px 10px;">🌾</button>
+              <button type="button" class="btn-ghost btn-sm" onclick="selecionarEmojiCategoria('🥛')" style="font-size:18px;padding:4px 10px;">🥛</button>
+              <button type="button" class="btn-ghost btn-sm" onclick="selecionarEmojiCategoria('🧊')" style="font-size:18px;padding:4px 10px;">🧊</button>
+              <button type="button" class="btn-ghost btn-sm" onclick="selecionarEmojiCategoria('🍫')" style="font-size:18px;padding:4px 10px;">🍫</button>
+              <button type="button" class="btn-ghost btn-sm" onclick="selecionarEmojiCategoria('🥫')" style="font-size:18px;padding:4px 10px;">🥫</button>
+              <button type="button" class="btn-ghost btn-sm" onclick="selecionarEmojiCategoria('🌶️')" style="font-size:18px;padding:4px 10px;">🌶️</button>
+              <button type="button" class="btn-ghost btn-sm" onclick="selecionarEmojiCategoria('🧴')" style="font-size:18px;padding:4px 10px;">🧴</button>
+              <button type="button" class="btn-ghost btn-sm" onclick="selecionarEmojiCategoria('🧻')" style="font-size:18px;padding:4px 10px;">🧻</button>
+              <button type="button" class="btn-ghost btn-sm" onclick="selecionarEmojiCategoria('🛒')" style="font-size:18px;padding:4px 10px;">🛒</button>
+              <button type="button" class="btn-ghost btn-sm" onclick="selecionarEmojiCategoria('📦')" style="font-size:18px;padding:4px 10px;">📦</button>
+            </div>
             <div style="display:flex;gap:.5rem;">
               <button class="btn-primary" id="btnSalvarCategoria" onclick="adicionarCategoria()" style="flex:1;"><i class="ti ti-plus"></i> Adicionar</button>
               <button class="btn-ghost" onclick="cancelEditCategoria()" id="btnCancelCategoria" style="display:none;flex:none;">Cancelar</button>
@@ -3143,6 +3165,9 @@ function renderCategoriasCadastro(){
     <button class="btn-ghost btn-sm" onclick="editarCategoria(${c.id})" title="Editar"><i class="ti ti-edit"></i></button>
     <button class="btn-ghost btn-sm" onclick="alternarCategoriaAtiva(${c.id},${!c.ativa})" title="${c.ativa?'Desativar':'Reativar'}"><i class="ti ti-${c.ativa?'eye-off':'eye'}"></i></button>
   </div>`).join('');
+}
+function selecionarEmojiCategoria(emoji){
+  el('novaCategoriaEmoji').value=emoji;
 }
 async function adicionarCategoria(){
   const nome=el('novaCategoriaNome').value.trim();
