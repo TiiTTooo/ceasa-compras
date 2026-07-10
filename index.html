@@ -3818,6 +3818,20 @@ let asaasKey='', asaasModo='sandbox';
 
 async function renderMaster(){
   if(!currentUser||!currentUser.isAdmin)return;
+  // Carrega a configuração ATUAL do Asaas (chave e modo) já salva no banco,
+  // pra tela nunca mais mostrar "Sandbox" por padrão quando na verdade é Produção.
+  try{
+    const {data:configRows}=await db.from('config_sistema').select('chave,valor').in('chave',['asaas_key','asaas_modo']);
+    const keySalva=configRows?.find(c=>c.chave==='asaas_key')?.valor;
+    const modoSalvo=configRows?.find(c=>c.chave==='asaas_modo')?.valor;
+    const keyInput=el('asaasKeyInput');
+    if(keyInput&&keySalva)keyInput.value=keySalva;
+    const modoInput=el('asaasModoInput');
+    if(modoInput&&modoSalvo){
+      const opcaoExiste=[...modoInput.options].some(o=>o.value===modoSalvo);
+      if(opcaoExiste)modoInput.value=modoSalvo;
+    }
+  }catch(e){}
   // Carregar todas as lojas + assinaturas
   // Buscar lojas e assinaturas separadamente para garantir dados frescos
   const {data:lojasData}=await db.from('lojas').select('*').order('id');
