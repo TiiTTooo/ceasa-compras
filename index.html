@@ -1218,6 +1218,40 @@ button{font-family:inherit;font-size:14px;font-weight:600;cursor:pointer;border-
   </div>
 </div>
 
+<!-- PAGAMENTO MODAL (Pix / Boleto / Cartão) -->
+<div class="modal-overlay" id="pagamentoModal" onclick="if(event.target===this)fecharModalPagamento()">
+  <div class="modal-box" style="max-width:420px;">
+    <div class="modal-head"><span class="modal-title"><i class="ti ti-receipt-2"></i> Pagamento — R$ <span id="pagValorTexto">0,00</span></span><button class="btn-icon" onclick="fecharModalPagamento()"><i class="ti ti-x" style="font-size:18px;"></i></button></div>
+    <div class="seg-tabs" id="pagTabs" style="margin-bottom:1rem;">
+      <button class="seg-tab" id="pagTabPix" onclick="mostrarAbaPagamento('pix')"><i class="ti ti-brand-pix"></i> Pix</button>
+      <button class="seg-tab" id="pagTabBoleto" onclick="mostrarAbaPagamento('boleto')"><i class="ti ti-barcode"></i> Boleto</button>
+      <button class="seg-tab" id="pagTabCartao" onclick="mostrarAbaPagamento('cartao')"><i class="ti ti-credit-card"></i> Cartão</button>
+    </div>
+    <div id="pagPainelPix" style="display:none;text-align:center;">
+      <img id="pagPixImg" src="" style="width:200px;height:200px;margin:0 auto .75rem;display:block;border-radius:var(--radius-sm);"/>
+      <p style="font-size:12px;color:var(--text2);margin-bottom:.5rem;">Escaneia o QR Code com o app do seu banco, ou copia o código abaixo:</p>
+      <div style="display:flex;gap:6px;margin-bottom:.5rem;">
+        <input id="pagPixCopiaCola" readonly style="flex:1;font-size:11px;font-family:monospace;"/>
+        <button class="btn-primary btn-sm" onclick="copiarTexto('pagPixCopiaCola')"><i class="ti ti-copy"></i> Copiar</button>
+      </div>
+      <p id="pagPixIndisponivel" style="display:none;font-size:13px;color:var(--text2);">O Pix dessa cobrança ainda está sendo gerado — tenta de novo em alguns segundos, ou usa boleto/cartão.</p>
+    </div>
+    <div id="pagPainelBoleto" style="display:none;text-align:center;">
+      <p style="font-size:12px;color:var(--text2);margin-bottom:.625rem;">Linha digitável:</p>
+      <div style="display:flex;gap:6px;margin-bottom:.75rem;">
+        <input id="pagLinhaDigitavel" readonly style="flex:1;font-size:12px;font-family:monospace;"/>
+        <button class="btn-primary btn-sm" onclick="copiarTexto('pagLinhaDigitavel')"><i class="ti ti-copy"></i> Copiar</button>
+      </div>
+      <a id="pagBoletoLink" href="#" target="_blank" class="btn-ghost btn-w" style="text-decoration:none;"><i class="ti ti-file-download"></i> Baixar boleto (PDF)</a>
+      <p id="pagBoletoIndisponivel" style="display:none;font-size:13px;color:var(--text2);margin-top:.5rem;">O boleto dessa cobrança ainda está sendo gerado — tenta de novo em alguns segundos, ou usa Pix/cartão.</p>
+    </div>
+    <div id="pagPainelCartao" style="display:none;text-align:center;">
+      <p style="font-size:12px;color:var(--text2);margin-bottom:.75rem;">O pagamento com cartão é feito numa tela segura do próprio Asaas — vamos te levar pra lá.</p>
+      <a id="pagCartaoLink" href="#" target="_blank" class="btn-primary btn-w" style="text-decoration:none;"><i class="ti ti-external-link"></i> Pagar com cartão no Asaas</a>
+    </div>
+  </div>
+</div>
+
 
 <div class="modal-overlay" id="subManagerModal" onclick="if(event.target===this)el('subManagerModal').classList.remove('open')">
   <div class="modal-box">
@@ -4039,8 +4073,7 @@ async function gerarCobrancaLoja(lojaId){
       return;
     }
     if(!data.link){showToast('Assinatura criada, mas o link ainda não ficou pronto. Tenta de novo em alguns segundos.');return;}
-    window.open(data.link,'_blank');
-    showToast('Cobrança gerada! Link aberto em nova aba.');
+    abrirModalPagamento(data);
   }catch(e){showToast('Erro: '+e.message);}
 }
 
@@ -4103,6 +4136,57 @@ async function renderAssinaturasTodasLojas(){
   }catch(e){cont.innerHTML='';}
 }
 
+function abrirModalPagamento(data){
+  if(data._debug&&(data._debug.pixDebug||data._debug.boletoDebug)){
+    console.warn('[Hortiz] Diagnóstico Pix/Boleto:',data._debug);
+  }
+  el('pagValorTexto').textContent=parseFloat(data.valor).toLocaleString('pt-BR',{minimumFractionDigits:2});
+  const temPix=!!(data.pix&&data.pix.copiaECola);
+  if(temPix){
+    el('pagPixImg').src=data.pix.qrCodeImage||'';
+    el('pagPixImg').style.display=data.pix.qrCodeImage?'':'none';
+    el('pagPixCopiaCola').value=data.pix.copiaECola;
+    el('pagPixIndisponivel').style.display='none';
+  } else {
+    el('pagPixImg').style.display='none';
+    el('pagPixCopiaCola').value='';
+    el('pagPixIndisponivel').style.display='';
+  }
+  const temBoleto=!!(data.boleto&&data.boleto.url);
+  if(temBoleto){
+    el('pagBoletoLink').href=data.boleto.url;
+    el('pagLinhaDigitavel').value=data.boleto.linhaDigitavel||'';
+    el('pagBoletoIndisponivel').style.display='none';
+  } else {
+    el('pagBoletoLink').href='#';
+    el('pagLinhaDigitavel').value='';
+    el('pagBoletoIndisponivel').style.display='';
+  }
+  el('pagCartaoLink').href=data.link||'#';
+  mostrarAbaPagamento(temPix?'pix':(temBoleto?'boleto':'cartao'));
+  el('pagamentoModal').classList.add('open');
+}
+function fecharModalPagamento(){el('pagamentoModal').classList.remove('open');}
+function mostrarAbaPagamento(aba){
+  const nomes={pix:'Pix',boleto:'Boleto',cartao:'Cartao'};
+  Object.keys(nomes).forEach(a=>{
+    const painel=el('pagPainel'+nomes[a]);
+    if(painel)painel.style.display=a===aba?'':'none';
+    const tab=el('pagTab'+nomes[a]);
+    if(tab)tab.classList.toggle('active',a===aba);
+  });
+}
+async function copiarTexto(elId){
+  const elemento=el(elId);
+  if(!elemento||!elemento.value){showToast('Nada pra copiar ainda');return;}
+  try{
+    await navigator.clipboard.writeText(elemento.value);
+    showToast('Copiado!');
+  }catch(e){
+    try{elemento.select();document.execCommand('copy');showToast('Copiado!');}
+    catch(e2){showToast('Não consegui copiar — seleciona o texto manualmente');}
+  }
+}
 async function selecionarPlanoLoja(lojaId,plano,btnEl){
   const textoOriginal=btnEl?btnEl.innerHTML:'';
   if(btnEl)btnEl.innerHTML='<i class="ti ti-loader-2"></i> Gerando…';
@@ -4115,9 +4199,7 @@ async function selecionarPlanoLoja(lojaId,plano,btnEl){
       return;
     }
     if(!data.link){showToast('Assinatura criada, mas o link ainda não ficou pronto. Tenta de novo em alguns segundos.');return;}
-    const area=el('payLinkArea-'+lojaId);const link=el('payLink-'+lojaId);
-    if(area)area.style.display='block';
-    if(link){link.href=data.link;link.innerHTML='<i class="ti ti-external-link"></i> Pagar R$ '+parseFloat(data.valor).toLocaleString('pt-BR')+' via Asaas';}
+    abrirModalPagamento(data);
   }catch(e){
     if(btnEl)btnEl.innerHTML=textoOriginal;
     showToast('Erro: '+e.message);
@@ -4181,9 +4263,7 @@ async function selecionarPlano(plano){
       showToast('Assinatura criada, mas o link ainda não ficou pronto. Tenta de novo em alguns segundos.');
       return;
     }
-    el('payLinkArea').style.display='block';
-    el('payLink').href=data.link;
-    el('payLink').textContent='Pagar R$ '+parseFloat(data.valor).toFixed(2)+' via Asaas';
+    abrirModalPagamento(data);
   }catch(e){
     el('payLoading').style.display='none';
     showToast('Erro ao gerar cobrança: '+e.message);
