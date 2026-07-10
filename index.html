@@ -4025,8 +4025,10 @@ async function salvarConfigLoja(lojaId){
     },{onConflict:'loja_id'});
     if(error){showToast('Erro: '+error.message);return;}
     showToast('✅ Configuração salva! R$ '+valor+'/mês · '+status);
-    // Aguarda um momento antes de recarregar para garantir persistência
-    setTimeout(()=>renderMaster(),500);
+    // Não recarrega o painel inteiro aqui de propósito — isso reconstrói a lista inteira
+    // a partir do banco e apagava qualquer valor que você já tivesse digitado (mas ainda
+    // não salvo) em OUTRA loja da lista, sem avisar. Se quiser ver os cards de resumo do
+    // topo (Total de lojas, MRR etc.) atualizados, troca de aba e volta pra Master.
   }catch(e){showToast('Erro ao salvar: '+e.message);}
 }
 
@@ -4849,7 +4851,8 @@ function renderGerenciarProdutosLista(){
     }
   }
   if(!filtrados.length){cont.innerHTML='<div class="empty"><i class="ti ti-apple"></i>Nenhum produto encontrado. Adicione um acima, ou ajuste os filtros.</div>';return;}
-  cont.innerHTML=filtrados.map((p,i)=>`<div class="data-card"${p.ativo?'':' style="opacity:.55;"'}>
+  const avisoReordenar=(!podeReordenar&&filtrados.length>1)?`<p style="font-size:12px;color:var(--text3);margin-bottom:.5rem;"><i class="ti ti-info-circle"></i> Filtre por uma categoria específica (não "Todas categorias") pra poder reordenar os produtos com as setinhas.</p>`:'';
+  cont.innerHTML=avisoReordenar+filtrados.map((p,i)=>`<div class="data-card"${p.ativo?'':' style="opacity:.55;"'}>
     ${podeReordenar?`<div style="display:flex;flex-direction:column;gap:2px;">
       <button class="btn-ghost btn-sm" style="padding:2px 6px;" ${i===0?'disabled':''} onclick="moverProduto(${p.id},-1)" title="Mover pra cima"><i class="ti ti-chevron-up"></i></button>
       <button class="btn-ghost btn-sm" style="padding:2px 6px;" ${i===filtrados.length-1?'disabled':''} onclick="moverProduto(${p.id},1)" title="Mover pra baixo"><i class="ti ti-chevron-down"></i></button>
