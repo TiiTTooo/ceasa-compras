@@ -772,9 +772,6 @@ button{font-family:inherit;font-size:14px;font-weight:600;cursor:pointer;border-
             <button id="btnPlanoMensal" class="btn-primary" onclick="selecionarPlano('mensal')" style="flex:1;">
               <i class="ti ti-calendar-month"></i> Mensal — R$ <span id="valMensalLabel">250</span>/mês
             </button>
-            <button id="btnPlanoAnual" class="btn-ghost" onclick="selecionarPlano('anual')" style="flex:1;">
-              <i class="ti ti-calendar"></i> Anual — R$ <span id="valAnualLabel">3.000</span>/ano
-            </button>
           </div>
           <div id="payCardCancelar" style="display:none;">
             <p style="font-size:13px;color:var(--text2);margin-bottom:.75rem;">Cancelar interrompe a renovação automática imediatamente — o acesso da loja fica bloqueado até assinar de novo.</p>
@@ -1927,7 +1924,8 @@ async function moverLojaMaster(id,direcao){
 let acessoOperacionalBloqueado=false;
 async function checkSubscription(){
   try{
-    const {data:sub}=await db.from('assinaturas').select('*').eq('loja_id',currentLojaId).single();
+    const {data:subRows}=await db.rpc('status_assinatura_efetiva',{p_loja_id:currentLojaId});
+    const sub=subRows&&subRows[0];
     if(sub){
       const hoje=new Date().toISOString().split('T')[0];
       const trialFim=sub.trial_fim;
@@ -1937,7 +1935,7 @@ async function checkSubscription(){
         subscription.trialDaysLeft=Math.max(0,diasLeft);
         subscription.status=diasLeft<=0?'expired':'trial';
         subscription.expiresAt=new Date(trialFim);
-      } else if(status==='ativa'){
+      } else if(status==='ativa'||status==='isenta'){
         subscription.status='active';
         subscription.expiresAt=new Date(sub.proxima_cobranca||'2099-01-01');
       } else {
@@ -3912,8 +3910,8 @@ async function renderMaster(){
   el('masterLista').innerHTML=filtradas.map((l,i)=>{
     const sub=l.assinaturas&&l.assinaturas[0];
     const status=sub?sub.status:'sem_assinatura';
-    const statusLabel={trial:'⏳ Trial',ativa:'✅ Ativa',vencida:'🔴 Vencida',cancelada:'⚫ Cancelada',sem_assinatura:'⚪ Sem assinatura'};
-    const statusCor={trial:'var(--amber)',ativa:'var(--accent)',vencida:'var(--red)',cancelada:'var(--text3)',sem_assinatura:'var(--text3)'};
+    const statusLabel={trial:'⏳ Trial',ativa:'✅ Ativa',isenta:'🔗 Vinculada (sem cobrança)',vencida:'🔴 Vencida',cancelada:'⚫ Cancelada',sem_assinatura:'⚪ Sem assinatura'};
+    const statusCor={trial:'var(--amber)',ativa:'var(--accent)',isenta:'var(--blue)',vencida:'var(--red)',cancelada:'var(--text3)',sem_assinatura:'var(--text3)'};
     const valor=sub?parseFloat(sub.valor_mensal||250):250;
     const plano=sub?sub.plano:'mensal';
     const trialFim=sub?sub.trial_fim:'—';
@@ -3940,7 +3938,6 @@ async function renderMaster(){
           <label style="font-size:10px;color:var(--text3);text-transform:uppercase;display:block;margin-bottom:2px;">Plano</label>
           <select id="masterPlano_${l.id}" style="width:100%;font-size:13px;padding:4px 8px;">
             <option value="mensal"${plano==='mensal'?' selected':''}>Mensal</option>
-            <option value="anual"${plano==='anual'?' selected':''}>Anual</option>
           </select>
         </div>
         <div>
@@ -3953,17 +3950,25 @@ async function renderMaster(){
         </div>
         <div>
           <label style="font-size:10px;color:var(--text3);text-transform:uppercase;display:block;margin-bottom:2px;">Status</label>
-          <select id="masterStatus_${l.id}" style="width:100%;font-size:13px;padding:4px 8px;">
+          <select id="masterStatus_${l.id}" style="width:100%;font-size:13px;padding:4px 8px;" onchange="atualizarVinculoMasterWrap(${l.id})">
             <option value="trial"${status==='trial'?' selected':''}>Trial</option>
             <option value="ativa"${status==='ativa'?' selected':''}>Ativa</option>
+            <option value="isenta"${status==='isenta'?' selected':''}>Vinculada (sem cobrança)</option>
             <option value="vencida"${status==='vencida'?' selected':''}>Vencida</option>
             <option value="cancelada"${status==='cancelada'?' selected':''}>Cancelada</option>
+          </select>
+        </div>
+        <div id="masterVinculoWrap_${l.id}" style="${status==='isenta'?'':'display:none;'}">
+          <label style="font-size:10px;color:var(--text3);text-transform:uppercase;display:block;margin-bottom:2px;">Vinculada a</label>
+          <select id="masterVinculo_${l.id}" style="width:100%;font-size:13px;padding:4px 8px;">
+            <option value="">— escolha a loja que paga —</option>
+            ${todasLojas.filter(o=>o.id!==l.id).map(o=>`<option value="${o.id}"${sub&&sub.vinculada_loja_id===o.id?' selected':''}>${o.nome}</option>`).join('')}
           </select>
         </div>
       </div>
       <div style="display:flex;gap:6px;flex-wrap:wrap;">
         <button class="btn-primary" onclick="salvarConfigLoja(${l.id})" style="flex:2;font-size:13px;"><i class="ti ti-device-floppy"></i> Salvar</button>
-        <button class="btn-ghost" onclick="gerarCobrancaLoja(${l.id})" style="flex:1;font-size:13px;"><i class="ti ti-receipt"></i> Gerar cobrança</button>
+        ${status!=='isenta'?`<button class="btn-ghost" onclick="gerarCobrancaLoja(${l.id})" style="flex:1;font-size:13px;"><i class="ti ti-receipt"></i> Gerar cobrança</button>`:''}
         ${l.ativa===false?`<button class="btn-ghost" onclick="reativarLoja(${l.id})" style="flex:1;font-size:13px;color:var(--accent);"><i class="ti ti-rotate"></i> Reativar</button>
         <button class="btn-danger-soft" onclick="excluirLojaDefinitivamenteMaster(${l.id},'${(l.nome||'').replace(/'/g,"\\'")}')" style="flex:1;font-size:13px;"><i class="ti ti-trash-x"></i> Excluir de vez</button>`:`<button class="btn-ghost" onclick="desativarLojaMaster(${l.id},'${(l.nome||'').replace(/'/g,"\\'")}')" style="flex:1;font-size:13px;color:var(--red);"><i class="ti ti-ban"></i> Desativar</button>`}
       </div>
@@ -4003,12 +4008,18 @@ async function reativarLoja(lojaId){
   }catch(e){showToast('Erro: '+e.message);}
 }
 
+function atualizarVinculoMasterWrap(lojaId){
+  const statusEl=document.getElementById('masterStatus_'+lojaId);
+  const wrap=document.getElementById('masterVinculoWrap_'+lojaId);
+  if(statusEl&&wrap)wrap.style.display=statusEl.value==='isenta'?'':'none';
+}
 async function salvarConfigLoja(lojaId){
   const valEl=document.getElementById('masterVal_'+lojaId);
   const planoEl=document.getElementById('masterPlano_'+lojaId);
   const trialEl=document.getElementById('masterTrial_'+lojaId);
   const vencEl=document.getElementById('masterVenc_'+lojaId);
   const statusEl=document.getElementById('masterStatus_'+lojaId);
+  const vinculoEl=document.getElementById('masterVinculo_'+lojaId);
   if(!valEl||!planoEl||!statusEl){showToast('Erro: campos não encontrados');return;}
   const valor=parseFloat(valEl.value);
   if(isNaN(valor)||valor<0){showToast('Valor inválido');return;}
@@ -4016,6 +4027,11 @@ async function salvarConfigLoja(lojaId){
   const trialFim=trialEl&&trialEl.value?trialEl.value:null;
   const proximaCobranca=vencEl&&vencEl.value?vencEl.value:null;
   const status=statusEl.value;
+  if(status==='isenta'&&(!vinculoEl||!vinculoEl.value)){
+    showToast('Escolha a loja que vai pagar por essa, no campo "Vinculada a"');
+    return;
+  }
+  const vinculadaLojaId=(status==='isenta'&&vinculoEl&&vinculoEl.value)?parseInt(vinculoEl.value):null;
   try{
     const {error}=await db.from('assinaturas').upsert({
       loja_id:lojaId,
@@ -4024,6 +4040,7 @@ async function salvarConfigLoja(lojaId){
       trial_fim:trialFim,
       proxima_cobranca:proximaCobranca,
       status:status,
+      vinculada_loja_id:vinculadaLojaId,
       updated_at:new Date().toISOString()
     },{onConflict:'loja_id'});
     if(error){showToast('Erro: '+error.message);return;}
@@ -4110,10 +4127,10 @@ async function renderAssinaturasTodasLojas(){
     cont.innerHTML=lojasDoUsuario.map(l=>{
       const sub=(subsData||[]).find(s=>s.loja_id===l.id);
       const status=sub?sub.status:'sem_assinatura';
-      const label={trial:'⏳ Trial',ativa:'✅ Ativa',vencida:'🔴 Vencida',cancelada:'⚫ Cancelada',sem_assinatura:'⚪ Sem assinatura'}[status]||status;
-      const cor={trial:'var(--amber)',ativa:'var(--accent)',vencida:'var(--red)',cancelada:'var(--text3)',sem_assinatura:'var(--text3)'}[status]||'var(--text2)';
+      const label={trial:'⏳ Trial',ativa:'✅ Ativa',isenta:'🔗 Vinculada',vencida:'🔴 Vencida',cancelada:'⚫ Cancelada',sem_assinatura:'⚪ Sem assinatura'}[status]||status;
+      const cor={trial:'var(--amber)',ativa:'var(--accent)',isenta:'var(--blue)',vencida:'var(--red)',cancelada:'var(--text3)',sem_assinatura:'var(--text3)'}[status]||'var(--text2)';
       const valorMensal=parseFloat(sub&&sub.valor_mensal||250);
-      const precisaPagar=status==='trial'||status==='vencida'||status==='sem_assinatura';
+      const precisaPagar=(status==='trial'||status==='vencida'||status==='sem_assinatura');
       const ativa=l.id===currentLojaId;
       const vencInfo=(status==='ativa'&&sub&&sub.proxima_cobranca)?' · vence em '+formatBR(sub.proxima_cobranca):'';
       return `<div class="card" style="padding:.875rem 1rem;margin-bottom:.625rem;">
@@ -4130,7 +4147,6 @@ async function renderAssinaturasTodasLojas(){
         </div>
         ${precisaPagar?`<div style="display:flex;gap:.5rem;flex-wrap:wrap;">
           <button class="btn-primary btn-sm" style="flex:1;min-width:130px;" onclick="selecionarPlanoLoja(${l.id},'mensal',this)"><i class="ti ti-calendar-month"></i> Mensal — R$ ${valorMensal.toLocaleString('pt-BR')}/mês</button>
-          <button class="btn-ghost btn-sm" style="flex:1;min-width:130px;" onclick="selecionarPlanoLoja(${l.id},'anual',this)"><i class="ti ti-calendar"></i> Anual — R$ ${(valorMensal*12).toLocaleString('pt-BR')}/ano</button>
         </div>
         <div id="payLinkArea-${l.id}" style="display:none;margin-top:.625rem;background:var(--accent-bg);border:1px solid var(--accent-d);border-radius:var(--radius-sm);padding:.75rem;text-align:center;">
           <p style="font-size:12px;font-weight:600;color:var(--accent);margin-bottom:.375rem;">Link de pagamento gerado!</p>
@@ -4252,8 +4268,7 @@ async function cancelarAssinaturaAtiva(){
   }catch(e){showToast('Erro ao cancelar: '+e.message);}
 }
 async function selecionarPlano(plano){
-  el('btnPlanoMensal').className=plano==='mensal'?'btn-primary':'btn-ghost';
-  el('btnPlanoAnual').className=plano==='anual'?'btn-primary':'btn-ghost';
+  el('btnPlanoMensal').className='btn-primary';
   el('payLoading').style.display='block';
   el('payLinkArea').style.display='none';
   try{
