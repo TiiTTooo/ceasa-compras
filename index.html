@@ -499,6 +499,9 @@ button{font-family:inherit;font-size:14px;font-weight:600;cursor:pointer;border-
           <button class="btn-ghost btn-sm" onclick="switchTab('pedidos')" style="gap:6px;flex-shrink:0;">
             <i class="ti ti-clipboard-list"></i> Ver pedido
           </button>
+          <button class="btn-ghost btn-sm" onclick="exportarConferenciaEntregaPdf()" style="gap:6px;flex-shrink:0;">
+            <i class="ti ti-file-type-pdf"></i> Exportar conferência (PDF)
+          </button>
         </div>
 
         <div style="display:flex;align-items:center;gap:8px;margin-bottom:.625rem;">
@@ -847,9 +850,10 @@ button{font-family:inherit;font-size:14px;font-weight:600;cursor:pointer;border-
             <option value="legume">🥕 Legumes</option>
             <option value="verdura">🥬 Verduras</option>
           </select>
-          <input type="text" id="histProdFilter" placeholder="Buscar produto…" oninput="renderHistoricoCompras()" style="flex:2;min-width:160px;"/>
+          <input type="text" id="histProdFilter" placeholder="Buscar produto…" oninput="renderHistoricoCompras()" style="flex:1;min-width:120px;"/>
           <input type="date" id="histDataDe"  onchange="renderHistoricoCompras()" style="flex:1;min-width:130px;"/>
           <input type="date" id="histDataAte" onchange="renderHistoricoCompras()" style="flex:1;min-width:130px;"/>
+          <button class="btn-ghost" onclick="filtrarComprasDoDia()" style="white-space:nowrap;"><i class="ti ti-calendar-event"></i> Compras do dia</button>
         </div>
         <div class="stat-grid" style="margin-bottom:.875rem;">
           <div class="stat"><div class="stat-label">Total compras</div><div class="stat-value" id="histTotQtd">0</div></div>
@@ -3564,6 +3568,41 @@ function calcRelPorProdutoPorSemana(refDate){
   });
   return Object.values(porProdutoSemana).sort((a,b)=>a.categoria.localeCompare(b.categoria)||a.produto.localeCompare(b.produto,'pt-BR'));
 }
+function exportarConferenciaEntregaPdf(){
+  if(typeof window.jspdf==='undefined'){showToast('A biblioteca de PDF ainda não carregou — espera um instante e tenta de novo.');return;}
+  const itens=itensPedido.filter(i=>i.lojaId===currentLojaId&&i.data===currentDate)
+    .sort((a,b)=>labelCat(a.categoria).localeCompare(labelCat(b.categoria),'pt-BR')||a.produto.localeCompare(b.produto,'pt-BR'));
+  if(!itens.length){showToast('Não há pedido registrado nesse dia pra exportar.');return;}
+  try{
+    const {jsPDF}=window.jspdf;
+    const doc=new jsPDF();
+    const loja=lojas.find(l=>l.id===currentLojaId)||{};
+    doc.setFontSize(16);
+    doc.text('Hortiz — Conferência de entrega',14,18);
+    doc.setFontSize(11);
+    doc.setTextColor(90);
+    doc.text(`Loja: ${loja.nome||'-'}`,14,26);
+    doc.text(`Data do pedido: ${formatBR(currentDate)}`,14,32);
+    doc.setTextColor(0);
+    const body=itens.map(i=>[
+      labelCat(i.categoria),
+      i.produto,
+      String(i.qtd)+(i.tipo==='caixa'?' cx':' un'),
+      '',
+      ''
+    ]);
+    doc.autoTable({
+      startY:40,
+      head:[['Categoria','Produto','Qtd pedida','Recebido?','Qtd recebida']],
+      body,
+      styles:{fontSize:9,cellPadding:4},
+      headStyles:{fillColor:[96,165,250]},
+      columnStyles:{3:{cellWidth:26},4:{cellWidth:30}}
+    });
+    doc.save(`conferencia-entrega-${loja.nome||'loja'}-${currentDate}.pdf`);
+    showToast('PDF de conferência exportado!');
+  }catch(e){showToast('Erro ao exportar: '+e.message);}
+}
 function exportarRelatorioPdf(modo){
   if(typeof window.jspdf==='undefined'){showToast('A biblioteca de PDF ainda não carregou — espera um instante e tenta de novo.');return;}
   try{
@@ -5158,6 +5197,11 @@ function init(){
 }
 
 /* ── COMPRAS REALIZADAS ── */
+function filtrarComprasDoDia(){
+  el('histDataDe').value=currentDate;
+  el('histDataAte').value=currentDate;
+  renderHistoricoCompras();
+}
 function renderHistoricoCompras(){
   const catF  = el('histCatFilter').value;
   const prodF = (el('histProdFilter').value||'').toLowerCase();
