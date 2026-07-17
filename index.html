@@ -3114,6 +3114,9 @@ function addNovaLoja(){
   setTimeout(()=>el('novaLojaNome').focus(),100);
 }
 function fecharNovaLojaModal(){el('novaLojaModal').classList.remove('open');}
+function ehCnpj(documento){
+  return (documento||'').replace(/\D/g,'').length===14;
+}
 async function checarCnpjDuplicado(cnpj,lojaIdExcluir){
   if(!cnpj)return true;
   try{
@@ -3122,7 +3125,11 @@ async function checarCnpjDuplicado(cnpj,lojaIdExcluir){
     const {data,error}=await q;
     if(error||!data||!data.length)return true;
     const nomes=data.map(l=>l.nome).join(', ');
-    return confirm(`Esse CNPJ/CPF já está cadastrado em: ${nomes}.\n\nSe for o mesmo dono usando o mesmo documento em várias lojas de propósito, clique OK pra continuar. Se for engano, clique Cancelar e revisa o número.`);
+    if(ehCnpj(cnpj)){
+      showToast(`Esse CNPJ já está cadastrado em: ${nomes}. Um CNPJ só pode estar em uma loja — confere se não é engano de digitação.`);
+      return false;
+    }
+    return confirm(`Esse CPF já está cadastrado em: ${nomes}.\n\nSe for o mesmo dono usando o mesmo CPF em várias lojas de propósito, clique OK pra continuar. Se for engano, clique Cancelar e revisa o número.`);
   }catch(e){return true;}
 }
 async function criarNovaLojaSubmit(){
