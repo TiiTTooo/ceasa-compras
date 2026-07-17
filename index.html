@@ -1474,6 +1474,7 @@ function toggleTheme(){
   const theme=el('darkToggle').checked?'dark':'light';
   document.documentElement.dataset.theme=theme;
   try{localStorage.setItem('ceasa_theme',theme);}catch(e){}
+  if(corDestaqueAtual)aplicarCorDestaque(corDestaqueAtual);
 }
 function loadTheme(){
   try{
@@ -1486,20 +1487,46 @@ function loadTheme(){
   }catch(e){}
 }
 function initColorSwatches(){
+  const lojaAtual=lojas.find(l=>l.id===currentLojaId);
+  const corSalva=(lojaAtual&&lojaAtual.cor)||'#60a5fa';
+  let idxAtivo=ACCENT_COLORS.findIndex(c=>c.hex.toLowerCase()===corSalva.toLowerCase());
+  if(idxAtivo===-1)idxAtivo=0;
   el('colorSwatches').innerHTML='<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;width:100%;">'+
     ACCENT_COLORS.map((c,i)=>
       `<div style="display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer;" onclick="setAccent(${i})" title="${c.name}">
-        <div class="swatch${i===0?' active':''}" style="background:${c.hex};width:36px;height:36px;"></div>
+        <div class="swatch${i===idxAtivo?' active':''}" style="background:${c.hex};width:36px;height:36px;"></div>
         <span style="font-size:9px;color:var(--text3);text-align:center;line-height:1.1;max-width:44px;">${c.name}</span>
       </div>`
     ).join('')+'</div>';
+  aplicarCorDestaque(ACCENT_COLORS[idxAtivo]);
+}
+function misturarComBranco(hex,pct){
+  const h=hex.replace('#','');
+  const r=parseInt(h.substring(0,2),16),g=parseInt(h.substring(2,4),16),b=parseInt(h.substring(4,6),16);
+  const mix=v=>Math.round(v+(255-v)*pct);
+  return '#'+[mix(r),mix(g),mix(b)].map(v=>v.toString(16).padStart(2,'0')).join('');
+}
+let corDestaqueAtual=null;
+function aplicarCorDestaque(c){
+  corDestaqueAtual=c;
+  const r=document.documentElement.style;
+  const temaClaro=document.documentElement.getAttribute('data-theme')==='light';
+  r.setProperty('--accent',c.hex);
+  r.setProperty('--accent-d',c.dark);
+  if(temaClaro){
+    // No modo claro, o fundo "bg" de cada cor foi pensado pro modo escuro e fica
+    // forte demais aqui — em vez disso, gera uma versão bem mais clara da mesma cor.
+    r.setProperty('--accent-bg',misturarComBranco(c.hex,0.86));
+    r.setProperty('--accent-txt',c.dark);
+  } else {
+    r.setProperty('--accent-bg',c.bg);
+    r.setProperty('--accent-txt',c.txt);
+  }
 }
 function setAccent(i){
   const c=ACCENT_COLORS[i];
-  const r=document.documentElement.style;
-  r.setProperty('--accent',c.hex);r.setProperty('--accent-d',c.dark);r.setProperty('--accent-bg',c.bg);r.setProperty('--accent-txt',c.txt);
+  aplicarCorDestaque(c);
   document.querySelectorAll('.swatch').forEach((s,j)=>s.classList.toggle('active',j===i));
-  // também ajusta light accent-bg para versão mais clara
   showToast(`Cor "${c.name}" aplicada!`);
 }
 function openSettings(){
