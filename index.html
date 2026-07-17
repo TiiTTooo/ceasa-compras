@@ -3034,7 +3034,7 @@ async function salvarLoja(){
   if(el('logoPreview').style.display!=='none')loja.logo=el('logoPreview').src;
   // Sincroniza com Supabase
   try{
-    await db.from('lojas').update({
+    const {error}=await db.from('lojas').update({
       nome: loja.nome,
       endereco: loja.endereco||null,
       cidade: loja.cidade||null,
@@ -3044,7 +3044,8 @@ async function salvarLoja(){
       cor_destaque: loja.cor||'#60a5fa',
       cobranca_para: loja.cobrancaPara
     }).eq('id', targetId);
-  }catch(e){ /* silencioso — dados já atualizados localmente */ }
+    if(error){showToast('Erro ao salvar no banco: '+error.message);return;}
+  }catch(e){showToast('Erro ao salvar no banco: '+e.message);return;}
   editingLojaId=null;el('btnCancelLoja').style.display='none';el('lojaFormTitle').textContent='Cadastro da Loja';
   refreshHeader();renderLojas();loadLojaForm(targetId);showToast('Loja salva!');
 }
