@@ -3065,6 +3065,7 @@ function removeDespesa(id){
 /* ── LOJA CADASTRO ── */
 function previewLogo(inp){
   const f=inp.files[0];if(!f)return;
+  if(f.size>2*1024*1024){showToast('Imagem muito grande (máx. 2MB) — escolhe uma menor ou comprime antes de enviar.');inp.value='';return;}
   const r=new FileReader();r.onload=e=>{el('logoPreview').src=e.target.result;el('logoPreview').style.display='';el('logoIcon').style.display='none';};r.readAsDataURL(f);
 }
 function loadLojaForm(id){
@@ -3152,6 +3153,7 @@ function selecionarCobrarDe(contexto,valor){
 }
 function previewLogoNovaLoja(inp){
   const f=inp.files[0];if(!f)return;
+  if(f.size>2*1024*1024){showToast('Imagem muito grande (máx. 2MB) — escolhe uma menor ou comprime antes de enviar.');inp.value='';return;}
   const r=new FileReader();r.onload=e=>{el('novaLojaLogoPreview').src=e.target.result;el('novaLojaLogoPreview').style.display='';el('novaLojaLogoIcon').style.display='none';};r.readAsDataURL(f);
 }
 function addNovaLoja(){
@@ -3209,7 +3211,12 @@ async function criarNovaLojaSubmit(){
     const {data:novaLoja,error}=await db.from('lojas').insert({
       nome,endereco:endereco||null,cidade:cidade||null,cnpj:cnpj||null,tel:tel||null,logo:logo||null,cobranca_para:cobrarDeNovaLoja,ordem:ordemNova
     }).select().single();
-    if(error){showToast('Erro ao criar loja: '+error.message);return;}
+    if(error){
+      const msg=(error.message||'').includes('row-level security')
+        ?'Você atingiu o limite de 5 lojas novas em 24 horas. Espera um pouco ou, se for um caso legítimo de mais lojas, fala comigo (admin) que eu libero na hora.'
+        :'Erro ao criar loja: '+error.message;
+      showToast(msg);return;
+    }
     const lojaObj={id:novaLoja.id,nome:novaLoja.nome,cidade:cidade,logo:logo,cnpj:cnpj,tel:tel,endereco:endereco,cobrancaPara:cobrarDeNovaLoja,ordem:ordemNova};
     lojas.push(lojaObj);
     fecharNovaLojaModal();
