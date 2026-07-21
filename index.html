@@ -2352,7 +2352,7 @@ function limparProdutoSelecionado(){
 }
 
 function addPedido(){
-  const qtd=parseFloat(el('qtdPlan').value)||0;if(qtd<=0)return;
+  const qtd=parseFloat((el('qtdPlan').value||'').replace(',','.'))||0;if(qtd<=0)return;
   const tipo=el('tipoPlan').value;
   const unid=tipo==='caixa'?(parseInt(el('unidPorCaixa').value)||null):null;
   const novoItem={id:nextId++,data:currentDate,produto:el('prodPlan').value,categoria:el('catPlan').value,qtd,tipo,unidPorCaixa:unid,status:'pendente',lojaId:currentLojaId};
@@ -2411,7 +2411,7 @@ function saveEditPedido(id,tabela){
   const item=itensPedido.find(i=>i.id===id);if(!item)return;
   item.categoria=el(pre+'cat-'+id).value;
   item.produto=el(pre+'prod-'+id).value;
-  item.qtd=Math.round(parseFloat(el(pre+'qtd-'+id).value)||item.qtd);
+  item.qtd=Math.round(parseFloat((el(pre+'qtd-'+id).value||'').replace(',','.'))||item.qtd);
   const tipoEl=el(pre+'tipo-'+id);if(tipoEl)item.tipo=tipoEl.value;
   const unidEl=el(pre+'unid-'+id);if(unidEl)item.unidPorCaixa=(item.tipo==='caixa'?(parseInt(unidEl.value)||null):null);
   syncPedidoUpdate(item);
@@ -2679,8 +2679,8 @@ function reabrirPendente(id){const p=itensPedido.find(i=>i.id===id);if(!p)return
 function confirmPendente(id){
   const p=itensPedido.find(i=>i.id===id);if(!p)return;
   const suf=ceasaViewAtual==='categoria'?'-cat-':'-';
-  const qtd=parseFloat(el('pf-qtd'+suf+id).value)||p.qtd;
-  const val=parseFloat(el('pf-val'+suf+id).value)||0;if(val<=0){showToast('Informe o valor antes de confirmar');return;}
+  const qtd=parseFloat((el('pf-qtd'+suf+id).value||'').replace(',','.'))||p.qtd;
+  const val=parseFloat((el('pf-val'+suf+id).value||'').replace(',','.'))||0;if(val<=0){showToast('Informe o valor antes de confirmar');return;}
   const forn=el('pf-forn'+suf+id).value.trim()||'Sem fornecedor';
   p.status='comprado';
   syncPedidoUpdate(p);
@@ -2692,7 +2692,7 @@ function confirmPendente(id){
   renderPendentes();renderPedido();renderCompras();renderFornecedores();showToast(`${p.produto} confirmado!`);
 }
 function addAvulso(){
-  const qtd=parseFloat(el('qtdAvulso').value)||0;const val=parseFloat(el('valorAvulso').value)||0;
+  const qtd=parseFloat((el('qtdAvulso').value||'').replace(',','.'))||0;const val=parseFloat((el('valorAvulso').value||'').replace(',','.'))||0;
   if(qtd<=0||val<=0){showToast('Preencha quantidade e valor');return;}
   const _avulso={id:nextCompraId++,produto:el('prodAvulso').value,categoria:el('catAvulso').value,qtd,valorUnit:val,fornecedor:el('fornAvulso').value.trim()||'Sem fornecedor',pagamento:el('pagAvulso').value,planejado:false,lojaId:currentLojaId,data:currentDate};
   compras.push(_avulso);
@@ -2720,7 +2720,7 @@ function desfazerCompra(id){
 }
 function saveEditCompra(id){
   const c=compras.find(x=>x.id===id);if(!c)return;
-  c.qtd=parseFloat(el('ec-qtd-'+id).value)||c.qtd;c.valorUnit=parseFloat(el('ec-val-'+id).value)||c.valorUnit;
+  c.qtd=parseFloat((el('ec-qtd-'+id).value||'').replace(',','.'))||c.qtd;c.valorUnit=parseFloat((el('ec-val-'+id).value||'').replace(',','.'))||c.valorUnit;
   c.fornecedor=el('ec-forn-'+id).value.trim()||c.fornecedor;c.pagamento=el('ec-pag-'+id).value;
   syncCompraUpdate(c);
   renderCompras();renderFornecedores();showToast('Alteração salva!');
@@ -2949,7 +2949,7 @@ function renderFornecedores(){
 
 /* ── DESPESAS ── */
 async function addDespesa(){
-  const desc=el('descDespesa').value.trim();const val=parseFloat(el('valorDespesa').value)||0;
+  const desc=el('descDespesa').value.trim();const val=parseFloat((el('valorDespesa').value||'').replace(',','.'))||0;
   if(!desc||val<=0){showToast('Preencha descrição e valor');return;}
   const dataDespesaEl=el('dataDespesa');
   const dt=dataDespesaEl&&dataDespesaEl.value?dataDespesaEl.value:currentDate;
@@ -5036,21 +5036,36 @@ function toggleDetalheComprador(idx){
 }
 async function confirmarCompraComprador(idx){
   const linha=comprasComprAgregado[idx];if(!linha)return;
-  const valorUnit=parseFloat(el('cc-val-'+idx).value)||0;
+  const valorUnit=parseFloat((el('cc-val-'+idx).value||'').replace(',','.'))||0;
   if(valorUnit<=0){showToast('Informe o valor antes de confirmar');return;}
+  const qtdEditadaRaw=(el('cc-qtd-'+idx).value||'').replace(',','.');
+  let qtdTotalNova=parseFloat(qtdEditadaRaw);
+  if(isNaN(qtdTotalNova)||qtdTotalNova<0){showToast('Quantidade inválida');return;}
   const fornecedor=el('cc-forn-'+idx).value.trim()||'Sem fornecedor';
   const pagamento=el('cc-pag-'+idx).value;
+  // Redistribui a quantidade total (que pode ter sido ajustada aqui, diferente
+  // do que estava no pedido original) proporcionalmente entre as lojas de origem,
+  // igual a proporção original — e ajusta a última loja pra fechar o total certinho.
+  const totalOriginal=linha.total||linha.origens.reduce((s,o)=>s+o.qtd,0);
+  const qtdsRedistribuidas=linha.origens.map(o=>
+    totalOriginal>0?Math.round((o.qtd/totalOriginal)*qtdTotalNova):0
+  );
+  const somaRedistribuida=qtdsRedistribuidas.reduce((s,q)=>s+q,0);
+  const diferenca=qtdTotalNova-somaRedistribuida;
+  if(qtdsRedistribuidas.length)qtdsRedistribuidas[qtdsRedistribuidas.length-1]+=diferenca;
   showToast('Confirmando e distribuindo pra cada loja…');
   const falhas=[];
   try{
-    for(const origem of linha.origens){
+    for(let i=0;i<linha.origens.length;i++){
+      const origem=linha.origens[i];
+      const qtdDestaLoja=qtdsRedistribuidas[i];
       const loja=lojas.find(x=>x.id===origem.lojaId);
       const nomeLoja=loja?loja.nome:'Loja '+origem.lojaId;
       const {error:updError}=await db.from('itens_pedido').update({status:'comprado'}).eq('id',origem.itemId);
       if(updError){falhas.push(nomeLoja+': '+updError.message);continue;}
       const {error:insError}=await db.from('compras').insert({
         loja_id:origem.lojaId,item_pedido_id:origem.itemId,data:currentDate,
-        produto:linha.produto,categoria:linha.categoria,qtd:origem.qtd,
+        produto:linha.produto,categoria:linha.categoria,qtd:qtdDestaLoja,
         valor_unit:valorUnit,fornecedor,pagamento
       });
       if(insError)falhas.push(nomeLoja+': '+insError.message);
@@ -5472,7 +5487,7 @@ function onMargemChange(){
 }
 async function aplicarMargemTodos(){
   const tipo=el('margemGlobalTipo').value;
-  const val=parseFloat(el('margemGlobalValor').value);
+  const val=parseFloat((el('margemGlobalValor').value||'').replace(',','.'));
   if(isNaN(val)||val<0){showToast('Informe um valor válido');return;}
   const myHist=priceHistory.filter(h=>h.lojaId===currentLojaId);
   const prods=[...new Set(myHist.map(h=>h.produto))];
@@ -5611,9 +5626,15 @@ function renderPrecosMedia(){
         style="width:72px;padding:5px 6px;font-size:13px;text-align:right;background:var(--bg3);border:1px solid ${borderRs};border-radius:6px;color:var(--text);font-family:inherit;"/>
     </div>
   </td>
-  <td style="padding:8px 10px;text-align:right;white-space:nowrap;" id="prev-${pid}">
-    <span style="font-family:monospace;font-size:14px;font-weight:700;color:var(--accent);">${fmt(sugerido)}</span>
-    <span style="display:block;font-size:10px;color:var(--text3);">+${diff}%</span>
+  <td style="padding:5px 8px;text-align:right;white-space:nowrap;width:120px;" id="prev-${pid}">
+    <div style="display:flex;align-items:center;gap:3px;justify-content:flex-end;">
+      <span style="font-size:12px;color:var(--text2);">R$</span>
+      <input type="number" min="0" step="0.01" value="${sugerido.toFixed(2)}"
+        data-pid="${pid}" data-tipo="final"
+        oninput="precosPreview(this,'final','${pid}',${r.media})"
+        style="width:78px;padding:5px 6px;font-size:13px;font-weight:700;text-align:right;background:var(--bg3);border:1px solid var(--accent-d);border-radius:6px;color:var(--accent);font-family:'JetBrains Mono',monospace;"/>
+    </div>
+    <span id="prevdiff-${pid}" style="display:block;font-size:10px;color:var(--text3);">+${diff}%</span>
   </td>
   <td style="padding:5px 8px;text-align:center;width:72px;">
     <div style="display:flex;gap:2px;justify-content:center;">
@@ -5632,26 +5653,33 @@ function renderPrecosMedia(){
 }
 
 function precosPreview(inp, tipo, pid, media){
-  const v = parseFloat(inp.value);
+  const v = parseFloat((inp.value||'').replace(',','.'));
   if(isNaN(v) || v < 0) return;
-  // Atualiza o campo irmão automaticamente
   const allInputs = document.querySelectorAll('[data-pid="'+pid+'"]');
-  let pctInp=null, valInp=null;
-  allInputs.forEach(function(i){ if(i.dataset.tipo==='pct') pctInp=i; if(i.dataset.tipo==='val') valInp=i; });
-  var sugerido;
+  let pctInp=null, valInp=null, finalInp=null;
+  allInputs.forEach(function(i){ if(i.dataset.tipo==='pct') pctInp=i; if(i.dataset.tipo==='val') valInp=i; if(i.dataset.tipo==='final') finalInp=i; });
+  var sugerido, valorMargem, pct;
   if(tipo==='pct'){
-    sugerido = media*(1+v/100);
-    // preenche R$ automaticamente
-    if(valInp){ valInp.value = Math.round(sugerido - media); }
-  } else {
-    sugerido = media + v;
-    // preenche % automaticamente
-    if(pctInp && media>0){ pctInp.value = Math.round((v/media)*100); }
+    pct = v;
+    valorMargem = media*(v/100);
+    sugerido = media + valorMargem;
+  } else if(tipo==='val'){
+    valorMargem = v;
+    sugerido = media + valorMargem;
+    pct = media>0 ? (valorMargem/media)*100 : 0;
+  } else { // tipo === 'final'
+    sugerido = v;
+    valorMargem = sugerido - media;
+    pct = media>0 ? (valorMargem/media)*100 : 0;
   }
+  // Atualiza os dois campos irmãos que a pessoa não mexeu agora, sem re-renderizar a linha inteira
+  if(tipo!=='pct' && pctInp)   pctInp.value   = Math.round(pct);
+  if(tipo!=='val' && valInp)   valInp.value   = valorMargem.toFixed(2);
+  if(tipo!=='final' && finalInp) finalInp.value = sugerido.toFixed(2);
   const diff = media>0 ? ((sugerido-media)/media*100).toFixed(1) : 0;
-  const cell = el('prev-'+pid);
-  if(cell) cell.innerHTML = '<span style="font-family:monospace;font-size:14px;font-weight:700;color:var(--accent);">'+fmt(sugerido)+'</span><span style="display:block;font-size:10px;color:var(--text3);">+'+diff+'%</span>';
-  // Destaca o campo que foi editado
+  const diffEl = el('prevdiff-'+pid);
+  if(diffEl) diffEl.textContent = '+'+diff+'%';
+  // Destaca os campos preenchidos
   allInputs.forEach(function(i){ i.style.borderColor = i.value!=='' ? 'var(--amber)' : 'var(--border2)'; });
 }
 
