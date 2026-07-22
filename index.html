@@ -1181,7 +1181,7 @@ button{font-family:inherit;font-size:14px;font-weight:600;cursor:pointer;border-
         <label class="toggle"><input type="checkbox" id="darkToggle" checked onchange="toggleTheme()"><span class="toggle-slider"></span></label>
       </div>
     </div>
-    <div class="settings-panel">
+    <div class="settings-panel" id="corDestaquePanel">
       <div class="card-label">Cor de destaque</div>
       <div class="color-swatches" id="colorSwatches"></div>
     </div>
@@ -1528,20 +1528,36 @@ function aplicarCorDestaque(c){
     r.setProperty('--accent-txt',c.txt);
   }
 }
-function setAccent(i){
+async function setAccent(i){
   const c=ACCENT_COLORS[i];
   aplicarCorDestaque(c);
   document.querySelectorAll('.swatch').forEach((s,j)=>s.classList.toggle('active',j===i));
-  showToast(`Cor "${c.name}" aplicada!`);
+  // Salva a escolha na loja (era só visual antes — sumia ao recarregar ou logar de novo)
+  const lojaAtual=lojas.find(l=>l.id===currentLojaId);
+  if(!lojaAtual){showToast(`Cor "${c.name}" aplicada (não foi possível salvar: loja não encontrada)`);return;}
+  try{
+    const {error}=await db.from('lojas').update({cor_destaque:c.hex}).eq('id',currentLojaId);
+    if(error){showToast('Cor aplicada, mas houve erro ao salvar: '+error.message);return;}
+    lojaAtual.cor=c.hex;
+    showToast(`Cor "${c.name}" aplicada e salva!`);
+  }catch(e){
+    showToast('Cor aplicada, mas houve erro ao salvar: '+e.message);
+  }
 }
 function openSettings(){
   el('settingsModal').classList.add('open');
+  const souDono=currentUser&&(currentUser.role==='owner'||currentUser.isAdmin);
   const painel=el('meusDadosPanel');
   if(painel){
-    const souDono=currentUser&&currentUser.role==='owner';
     painel.style.display=souDono?'':'none';
     if(souDono)el('meuCpfInput').value=currentUser.cpf||'';
   }
+  // Cor de destaque é uma configuração da loja (compartilhada por todos que usam
+  // ela), não uma preferência pessoal — mesma regra de acesso de "Minha Loja":
+  // só dono/admin master mexem, pra um manager/pedidos/comprador não conseguir
+  // repintar a marca de todo mundo por essa tela genérica de Configurações.
+  const painelCor=el('corDestaquePanel');
+  if(painelCor)painelCor.style.display=souDono?'':'none';
 }
 async function salvarMeuCpf(){
   const cpf=el('meuCpfInput').value.trim();
