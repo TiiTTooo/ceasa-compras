@@ -1492,8 +1492,13 @@ function loadTheme(){
   }catch(e){}
 }
 function initColorSwatches(){
-  const lojaAtual=lojas.find(l=>l.id===currentLojaId);
-  const corSalva=(lojaAtual&&lojaAtual.cor)||'#60a5fa';
+  // Cor de destaque é preferência PESSOAL (por usuário, via chaveLS — igual ao
+  // tema claro/escuro), não da loja. Antes ficava salva em lojas.cor_destaque
+  // e trocava sozinha ao mudar de loja (ex: "9 de julho" clara/azul virava
+  // outra coisa nas demais lojas do mesmo usuário) — corrigido pra sempre usar
+  // a escolha do usuário logado, não importa em qual loja ele está.
+  let corSalva='#60a5fa';
+  try{ corSalva=localStorage.getItem(chaveLS('ceasa_accent'))||'#60a5fa'; }catch(e){}
   let idxAtivo=ACCENT_COLORS.findIndex(c=>c.hex.toLowerCase()===corSalva.toLowerCase());
   if(idxAtivo===-1)idxAtivo=0;
   el('colorSwatches').innerHTML='<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;width:100%;">'+
@@ -1528,20 +1533,18 @@ function aplicarCorDestaque(c){
     r.setProperty('--accent-txt',c.txt);
   }
 }
-async function setAccent(i){
+function setAccent(i){
   const c=ACCENT_COLORS[i];
   aplicarCorDestaque(c);
   document.querySelectorAll('.swatch').forEach((s,j)=>s.classList.toggle('active',j===i));
-  // Salva a escolha na loja (era só visual antes — sumia ao recarregar ou logar de novo)
-  const lojaAtual=lojas.find(l=>l.id===currentLojaId);
-  if(!lojaAtual){showToast(`Cor "${c.name}" aplicada (não foi possível salvar: loja não encontrada)`);return;}
+  // Preferência pessoal do usuário (não da loja) — mesmo padrão do tema
+  // claro/escuro: chaveLS() escopa a chave por usuário, então a cor
+  // continua igual não importa em qual loja ele estiver.
   try{
-    const {error}=await db.from('lojas').update({cor_destaque:c.hex}).eq('id',currentLojaId);
-    if(error){showToast('Cor aplicada, mas houve erro ao salvar: '+error.message);return;}
-    lojaAtual.cor=c.hex;
+    localStorage.setItem(chaveLS('ceasa_accent'), c.hex);
     showToast(`Cor "${c.name}" aplicada e salva!`);
   }catch(e){
-    showToast('Cor aplicada, mas houve erro ao salvar: '+e.message);
+    showToast(`Cor "${c.name}" aplicada (não foi possível salvar: ${e.message})`);
   }
 }
 function openSettings(){
@@ -1552,12 +1555,9 @@ function openSettings(){
     painel.style.display=souDono?'':'none';
     if(souDono)el('meuCpfInput').value=currentUser.cpf||'';
   }
-  // Cor de destaque é uma configuração da loja (compartilhada por todos que usam
-  // ela), não uma preferência pessoal — mesma regra de acesso de "Minha Loja":
-  // só dono/admin master mexem, pra um manager/pedidos/comprador não conseguir
-  // repintar a marca de todo mundo por essa tela genérica de Configurações.
-  const painelCor=el('corDestaquePanel');
-  if(painelCor)painelCor.style.display=souDono?'':'none';
+  // Cor de destaque é preferência pessoal (por usuário) — igual ao modo
+  // escuro, ao lado dela — então fica visível pra todo mundo, sem restrição
+  // de papel (não mexe em nada compartilhado da loja).
 }
 async function salvarMeuCpf(){
   const cpf=el('meuCpfInput').value.trim();
