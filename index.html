@@ -3037,8 +3037,23 @@ function removeForn(id,cat){
   renderFornecedoresCadastro();populateFornecedores('catAvulso','fornAvulsoList');showToast('Fornecedor removido');
   db.from('fornecedores').delete().eq('id',id).then(({error})=>{if(error)showToast('Erro ao remover do banco: '+error.message);});
 }
+async function usarTabelaPadraoFornecedores(){
+  if(!currentLojaId)return;
+  showToast('Copiando tabela padrão…');
+  const linhas=[];
+  ['fruta','legume','verdura'].forEach(cat=>{FORNECEDORES_PADRAO[cat].forEach(nome=>{linhas.push({loja_id:currentLojaId,categoria:cat,nome,padrao:true});});});
+  const {error}=await db.from('fornecedores').insert(linhas);
+  if(error){showToast('Erro ao copiar tabela padrão: '+error.message);return;}
+  await recarregarListasLoja();
+  showToast('Tabela padrão de fornecedores adicionada! 🎉');
+}
 function renderFornecedoresCadastro(){
   const CAT_LIST=listaCatComFallback().map(c=>({k:c.chave,emoji:c.emoji,label:c.nome}));
+  const totalForn=CAT_LIST.reduce((s,{k})=>s+((fornCustom[k]||[]).length),0);
+  if(!totalForn){
+    el('listaFornCadastro').innerHTML='<div class="empty"><i class="ti ti-truck"></i>Nenhum fornecedor cadastrado ainda.<br><button class="btn-primary btn-sm" style="margin-top:.75rem;" onclick="usarTabelaPadraoFornecedores()"><i class="ti ti-list-details"></i> Usar tabela padrão de fornecedores</button></div>';
+    return;
+  }
   let html='';
   CAT_LIST.forEach(({k,emoji,label})=>{
     const lista=[...(fornCustom[k]||[])].sort((a,b)=>(a.ordem||0)-(b.ordem||0)||a.nome.localeCompare(b.nome,'pt-BR',{sensitivity:'base'}));
@@ -3601,13 +3616,22 @@ function switchGerenciarView(view){
   if(view==='categorias')renderCategoriasCadastro();
 }
 let editingTipoDespesaId=null;
+async function usarTabelaPadraoDespesas(){
+  if(!currentLojaId)return;
+  showToast('Copiando tabela padrão…');
+  const linhas=DESPESAS_TIPO_PADRAO.map(nome=>({loja_id:currentLojaId,nome,ativo:true}));
+  const {error}=await db.from('despesas_tipos').upsert(linhas,{onConflict:'loja_id,nome'});
+  if(error){showToast('Erro ao copiar tabela padrão: '+error.message);return;}
+  await recarregarListasLoja();
+  showToast('Tabela padrão de despesas adicionada! 🎉');
+}
 async function renderTiposDespesa(){
   const cont=el('listaTiposDespesa');if(!cont)return;
   cont.innerHTML='<p style="font-size:13px;color:var(--text3);padding:.5rem 0;">Carregando…</p>';
   try{
     const {data,error}=await db.from('despesas_tipos').select('*').eq('loja_id',currentLojaId).order('ordem').order('nome');
     if(error){cont.innerHTML='<div class="empty">Erro ao carregar.</div>';return;}
-    if(!data||!data.length){cont.innerHTML='<div class="empty"><i class="ti ti-receipt"></i>Nenhum tipo de despesa cadastrado.</div>';return;}
+    if(!data||!data.length){cont.innerHTML='<div class="empty"><i class="ti ti-receipt"></i>Nenhum tipo de despesa cadastrado.<br><button class="btn-primary btn-sm" style="margin-top:.75rem;" onclick="usarTabelaPadraoDespesas()"><i class="ti ti-list-details"></i> Usar tabela padrão de despesas</button></div>';return;}
     tiposDespesaCache=data;
     cont.innerHTML=data.map((t,i)=>`<div class="data-card"${t.ativo?'':' style="opacity:.55;"'}>
       <div style="display:flex;flex-direction:column;gap:2px;">
