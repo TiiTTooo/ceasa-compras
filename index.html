@@ -2491,17 +2491,53 @@ function limparProdutoSelecionado(){
   el('prodSearch').focus();
 }
 
+function adicionarOuSomarPedido({produto,categoria,qtd,tipo,unidPorCaixa}){
+  // Se já existe um item pendente igual (mesmo produto/categoria/tipo/un-por-caixa)
+  // pro mesmo dia e loja, soma na quantidade em vez de criar uma linha duplicada.
+  // Só funde com itens 'pendente' — um item já comprado/não-comprado fica intacto.
+  const existente=itensPedido.find(i=>
+    i.lojaId===currentLojaId&&i.data===currentDate&&i.status==='pendente'&&
+    i.produto===produto&&i.categoria===categoria&&
+    (i.tipo||'unidade')===(tipo||'unidade')&&
+    (i.unidPorCaixa||null)===(unidPorCaixa||null)
+  );
+  if(existente){
+    existente.qtd=(parseFloat(existente.qtd)||0)+qtd;
+    syncPedidoUpdate(existente);
+    return existente;
+  }
+  const novoItem={id:nextId++,data:currentDate,produto,categoria,qtd,tipo,unidPorCaixa,status:'pendente',lojaId:currentLojaId};
+  itensPedido.push(novoItem);
+  syncPedidoInsert(novoItem);
+  return novoItem;
+}
 function addPedido(){
   const qtd=parseFloat((el('qtdPlan').value||'').replace(',','.'))||0;if(qtd<=0)return;
   const tipo=el('tipoPlan').value;
   const unid=tipo==='caixa'?(parseInt(el('unidPorCaixa').value)||null):null;
-  const novoItem={id:nextId++,data:currentDate,produto:el('prodPlan').value,categoria:el('catPlan').value,qtd,tipo,unidPorCaixa:unid,status:'pendente',lojaId:currentLojaId};
-  itensPedido.push(novoItem);
-  syncPedidoInsert(novoItem);
+  adicionarOuSomarPedido({produto:el('prodPlan').value,categoria:el('catPlan').value,qtd,tipo,unidPorCaixa:unid});
   el('qtdPlan').value='';el('unidPorCaixa').value='';
   renderHistorico();renderPedido();renderPendentes();renderPedidoTabela();
 }
 function removeItem(id){itensPedido=itensPedido.filter(i=>i.id!==id);syncPedidoDelete(id);renderHistorico();renderPedido();renderPendentes();renderNaoComprados();renderPedidoTabela();}
+function excluirPendente(id){
+  const p=itensPedido.find(i=>i.id===id);
+  if(!p)return;
+  if(!confirm(`Excluir "${p.produto}" da lista de pedidos? Use isso se a quantidade foi lançada no produto errado por engano.`))return;
+  removeItem(id);
+}
+function compraVinculada(itemPedidoId){
+  return compras.find(c=>c.itemPedidoId===itemPedidoId);
+}
+function metaPedidoComCompra(p){
+  const unit=p.tipo==='caixa'?'cx':'un';
+  let txt=`${p.qtd} ${unit} previsto`;
+  if(p.status==='comprado'){
+    const c=compraVinculada(p.id);
+    if(c)txt+=` · ${c.qtd} ${unit} comprado${c.valorUnit?` (R$ ${c.valorUnit.toFixed(2).replace('.',',')})`:''}`;
+  }
+  return txt+`${p.unidPorCaixa?` · ${p.unidPorCaixa} un/cx`:''} · ${labelCat(p.categoria)}`;
+}
 function renderPedido(){
   const itens=itensPedido.filter(i=>i.lojaId===currentLojaId&&i.data===currentDate);
   el('listaPedido').innerHTML=itens.length?itens.map(p=>`
@@ -2509,7 +2545,7 @@ function renderPedido(){
       <div class="item-head">
         <div>
           <div class="item-title">${p.produto}</div>
-          <div class="item-meta">${p.qtd} ${p.tipo==='caixa'?'cx':'un'} previsto${p.unidPorCaixa?` · ${p.unidPorCaixa} un/cx`:''} · ${labelCat(p.categoria)}</div>
+          <div class="item-meta">${metaPedidoComCompra(p)}</div>
         </div>
         <div style="display:flex;align-items:center;gap:6px;">
           ${statusBadge(p.status)}
@@ -2609,7 +2645,7 @@ function updateUnidCell(i,cat,p){
 function updateSalvarLabel(){let t=0;Object.keys(PRODUTOS).forEach(c=>PRODUTOS[c].forEach(p=>{if(parseFloat(tabelaDraft[c][p])>0)t++;}));el('salvarLabel').textContent=t>0?`Salvar pedido (${t} iten${t===1?'':'s'})`:'Salvar pedido';}
 function salvarTabela(){
   saveDraftFromDOM();let n=0;
-  Object.keys(PRODUTOS).forEach(cat=>{PRODUTOS[cat].forEach(p=>{const qtd=parseFloat(tabelaDraft[cat][p])||0;if(qtd>0){const tipo=tabelaDraftTipo[cat][p]||'unidade';const unid=tipo==='caixa'?(parseInt(tabelaDraftUnid[cat][p])||null):null;const novoItem={id:nextId++,data:currentDate,produto:p,categoria:cat,qtd,tipo,unidPorCaixa:unid,status:'pendente',lojaId:currentLojaId};itensPedido.push(novoItem);syncPedidoInsert(novoItem);tabelaDraft[cat][p]='';tabelaDraftTipo[cat][p]='unidade';tabelaDraftUnid[cat][p]='';n++;}});});
+  Object.keys(PRODUTOS).forEach(cat=>{PRODUTOS[cat].forEach(p=>{const qtd=parseFloat(tabelaDraft[cat][p])||0;if(qtd>0){const tipo=tabelaDraftTipo[cat][p]||'unidade';const unid=tipo==='caixa'?(parseInt(tabelaDraftUnid[cat][p])||null):null;adicionarOuSomarPedido({produto:p,categoria:cat,qtd,tipo,unidPorCaixa:unid});tabelaDraft[cat][p]='';tabelaDraftTipo[cat][p]='unidade';tabelaDraftUnid[cat][p]='';n++;}});});
   renderTabelaGrid();renderPedidoTabela();renderPedido();renderPendentes();renderHistorico();updateSalvarLabel();
   if(n>0)showToast(`${n} iten${n===1?'':'s'} adicionado${n===1?'':'s'}!`);
 }
@@ -2620,7 +2656,7 @@ function renderPedidoTabela(){
       <div class="item-head">
         <div>
           <div class="item-title">${p.produto}</div>
-          <div class="item-meta">${p.qtd} ${p.tipo==='caixa'?'cx':'un'}${p.unidPorCaixa?' · '+p.unidPorCaixa+' un/cx':''} · ${labelCat(p.categoria)}</div>
+          <div class="item-meta">${metaPedidoComCompra(p)}</div>
         </div>
         <div style="display:flex;align-items:center;gap:6px;">
           ${statusBadge(p.status)}
@@ -2720,6 +2756,7 @@ function itemPendenteCatHtml(p){
         <div style="display:flex;gap:6px;">
           <button class="btn-primary" onclick="confirmPendente(${p.id})" style="flex:2;font-size:13px;"><i class="ti ti-check"></i> Confirmar</button>
           <button class="btn-ghost" onclick="marcarNaoComprado(${p.id})" style="flex:1;font-size:13px;"><i class="ti ti-ban"></i> Não comprado</button>
+          <button class="btn-ghost" onclick="excluirPendente(${p.id})" title="Excluir pedido" style="flex:0 0 auto;padding:0 10px;color:var(--danger,#e5484d);"><i class="ti ti-trash"></i></button>
         </div>
       </div>`;
 }
@@ -2826,6 +2863,7 @@ function renderPendentes(){
       <div style="display:flex;gap:6px;">
         <button class="btn-primary" onclick="confirmPendente(${p.id})" style="flex:2;"><i class="ti ti-check"></i> Confirmar comprado</button>
         <button class="btn-ghost" onclick="marcarNaoComprado(${p.id})" style="flex:1;"><i class="ti ti-ban"></i> Não comprado</button>
+        <button class="btn-ghost" onclick="excluirPendente(${p.id})" title="Excluir pedido" style="flex:0 0 auto;padding:0 12px;color:var(--danger,#e5484d);"><i class="ti ti-trash"></i></button>
       </div>
     </div>`).join(''):`<div class="empty"><i class="ti ti-checks"></i>Nenhum pendente nesse dia.</div>`;
   // atualiza view de categoria se ativa
@@ -2847,7 +2885,7 @@ function confirmPendente(id){
   p.status='comprado';
   syncPedidoUpdate(p);
   const custoUn=(p.unidPorCaixa&&p.tipo==='caixa')?val/p.unidPorCaixa:val;
-  const novaCompra={id:nextCompraId++,produto:p.produto,categoria:p.categoria,qtd,valorUnit:val,custoUnitario:custoUn,tipo:p.tipo||'caixa',unidPorCaixa:p.unidPorCaixa||null,fornecedor:forn,pagamento:el('pf-pag'+suf+id).value,planejado:true,lojaId:currentLojaId,data:currentDate};
+  const novaCompra={id:nextCompraId++,produto:p.produto,categoria:p.categoria,qtd,valorUnit:val,custoUnitario:custoUn,tipo:p.tipo||'caixa',unidPorCaixa:p.unidPorCaixa||null,fornecedor:forn,pagamento:el('pf-pag'+suf+id).value,planejado:true,lojaId:currentLojaId,data:currentDate,itemPedidoId:p.id};
   compras.push(novaCompra);
   syncCompraInsert(novaCompra, p.id);
   priceHistory.push({produto:p.produto,categoria:p.categoria,data:currentDate,valor:val,custoUnitario:custoUn,unidPorCaixa:p.unidPorCaixa||null,tipo:p.tipo||'caixa',fornecedor:forn,lojaId:currentLojaId});
@@ -5269,7 +5307,7 @@ async function confirmarCompraComprador(idx){
           id:insData?.id??nextCompraId++,produto:linha.produto,categoria:linha.categoria,
           qtd:qtdDestaLoja,valorUnit,custoUnitario:custoUn,tipo:itemLocal.tipo||'caixa',
           unidPorCaixa:itemLocal.unidPorCaixa||null,fornecedor,pagamento,planejado:true,
-          lojaId:origem.lojaId,data:currentDate,
+          lojaId:origem.lojaId,data:currentDate,itemPedidoId:origem.itemId,
         });
         priceHistory.push({produto:linha.produto,categoria:linha.categoria,data:currentDate,valor:valorUnit,custoUnitario:custoUn,unidPorCaixa:itemLocal.unidPorCaixa||null,tipo:itemLocal.tipo||'caixa',fornecedor,lojaId:origem.lojaId});
       }
@@ -5510,7 +5548,7 @@ async function carregarDadosDaLoja(){
         qtd: parseFloat(c.qtd), valorUnit: parseFloat(c.valor_unit),
         custoUnitario: parseFloat(c.valor_unit), fornecedor: c.fornecedor,
         pagamento: c.pagamento, planejado: !!c.item_pedido_id, lojaId: c.loja_id,
-        data: c.data
+        data: c.data, itemPedidoId: c.item_pedido_id||null
       }));
       const maxCompraId = Math.max(0, ...compras.map(c=>c.id));
       if(maxCompraId>=nextCompraId) nextCompraId = maxCompraId+1;
