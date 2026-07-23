@@ -5700,7 +5700,7 @@ function renderHistoricoCompras(){
 
   // Build unified list from compras (has qty/pagamento) enriched by priceHistory
   let rows = myComp.map(c=>{
-    return {produto:c.produto,categoria:c.categoria,data:currentDate,valorUnit:c.valorUnit,qtd:c.qtd,fornecedor:c.fornecedor,pagamento:c.pagamento};
+    return {produto:c.produto,categoria:c.categoria,data:c.data,valorUnit:c.valorUnit,qtd:c.qtd,fornecedor:c.fornecedor,pagamento:c.pagamento};
   });
   // Also include priceHistory entries not yet in compras (seeded demo data)
   priceHistory.filter(h=>h.lojaId===currentLojaId).forEach(h=>{
