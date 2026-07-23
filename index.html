@@ -5282,6 +5282,17 @@ async function renderComprasCompradorFeitas(){
 }
 
 let produtosGerenciarCache=null;
+async function usarTabelaPadraoProdutos(){
+  if(!currentLojaId)return;
+  showToast('Copiando tabela padrão…');
+  const linhas=[];
+  ['fruta','legume','verdura'].forEach(cat=>{CATALOGO_PADRAO[cat].forEach(nome=>{linhas.push({loja_id:currentLojaId,categoria:cat,nome});});});
+  const {error}=await db.from('produtos').upsert(linhas,{onConflict:'loja_id,categoria,nome'});
+  if(error){showToast('Erro ao copiar tabela padrão: '+error.message);return;}
+  produtosGerenciarCache=null;
+  await renderGerenciarProdutos(true);
+  showToast('Tabela padrão de produtos adicionada! 🎉');
+}
 async function renderGerenciarProdutos(forcarReload){
   const cont=el('listaGerenciarProdutos');if(!cont)return;
   if(produtosGerenciarCache===null||forcarReload){
@@ -5311,7 +5322,14 @@ function renderGerenciarProdutosLista(){
       wrapExcluirCat.style.display='none';
     }
   }
-  if(!filtrados.length){cont.innerHTML='<div class="empty"><i class="ti ti-apple"></i>Nenhum produto encontrado. Adicione um acima, ou ajuste os filtros.</div>';return;}
+  if(!filtrados.length){
+    if(!data.length){
+      cont.innerHTML='<div class="empty"><i class="ti ti-apple"></i>Nenhum produto cadastrado ainda.<br><button class="btn-primary btn-sm" style="margin-top:.75rem;" onclick="usarTabelaPadraoProdutos()"><i class="ti ti-list-details"></i> Usar tabela padrão de produtos</button></div>';
+    } else {
+      cont.innerHTML='<div class="empty"><i class="ti ti-apple"></i>Nenhum produto encontrado. Adicione um acima, ou ajuste os filtros.</div>';
+    }
+    return;
+  }
   const avisoReordenar=(!podeReordenar&&filtrados.length>1)?`<p style="font-size:12px;color:var(--text3);margin-bottom:.5rem;"><i class="ti ti-info-circle"></i> Filtre por uma categoria específica (não "Todas categorias") pra poder reordenar os produtos com as setinhas.</p>`:'';
   cont.innerHTML=avisoReordenar+filtrados.map((p,i)=>`<div class="data-card"${p.ativo?'':' style="opacity:.55;"'}>
     ${podeReordenar?`<div style="display:flex;flex-direction:column;gap:2px;">
