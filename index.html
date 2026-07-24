@@ -467,8 +467,8 @@ button{font-family:inherit;font-size:14px;font-weight:600;cursor:pointer;border-
           <div class="card">
             <div class="card-label">Adicionar item ao pedido</div>
             <div class="field-row">
-              <select id="catPlan" onchange="populateProdutos('catPlan','prodPlan')"><option value="fruta">Fruta</option><option value="legume">Legume</option><option value="verdura">Verdura</option></select>
-              <select id="prodPlan"></select>
+              <select id="catPlan" onchange="populateProdutos('catPlan','prodPlan');onProdPlanChange()"><option value="fruta">Fruta</option><option value="legume">Legume</option><option value="verdura">Verdura</option></select>
+              <select id="prodPlan" onchange="onProdPlanChange()"></select>
               <input id="qtdPlan" type="number" placeholder="Qtd prevista" step="1" min="0" onkeydown="if(event.key==='Enter')addPedido()"/>
             </div>
             <div style="display:flex;gap:8px;margin-bottom:.5rem;flex-wrap:wrap;">
@@ -994,6 +994,16 @@ button{font-family:inherit;font-size:14px;font-weight:600;cursor:pointer;border-
                 <option value="verdura">🥬 Verdura</option>
               </select>
             </div>
+            <div style="display:flex;gap:8px;margin-bottom:.625rem;flex-wrap:wrap;">
+              <select id="novoProdutoTipo" onchange="onNovoProdutoTipoChange()" style="flex:1;min-width:130px;">
+                <option value="caixa" selected>📦 Padrão: Caixa</option>
+                <option value="unidade">🔢 Padrão: Unidade</option>
+              </select>
+              <div id="novoProdutoUnidCxWrap" style="flex:1;min-width:140px;position:relative;">
+                <input id="novoProdutoUnidCx" type="number" placeholder="Unidades por caixa (opcional)" step="1" min="1" style="padding-right:2.5rem;"/>
+                <span style="position:absolute;right:10px;top:50%;transform:translateY(-50%);font-size:11px;color:var(--text3);">un/cx</span>
+              </div>
+            </div>
             <div style="display:flex;gap:.5rem;">
               <button class="btn-primary" id="btnSalvarProduto" onclick="adicionarProduto()" style="flex:1;"><i class="ti ti-plus"></i> Adicionar</button>
               <button class="btn-ghost" onclick="cancelEditProduto()" id="btnCancelProduto" style="display:none;flex:none;">Cancelar</button>
@@ -1273,6 +1283,10 @@ button{font-family:inherit;font-size:14px;font-weight:600;cursor:pointer;border-
       <p style="font-size:12px;color:var(--text2);margin-bottom:.75rem;">O pagamento com cartão é feito numa tela segura do próprio Asaas — vamos te levar pra lá.</p>
       <a id="pagCartaoLink" href="#" target="_blank" class="btn-primary btn-w" style="text-decoration:none;"><i class="ti ti-external-link"></i> Pagar com cartão no Asaas</a>
     </div>
+    <div style="margin-top:1rem;padding-top:1rem;border-top:1px solid var(--border);">
+      <button class="btn-ghost btn-w" id="btnVerificarPagamento" onclick="verificarPagamentoAgora()"><i class="ti ti-refresh"></i> Já paguei — verificar agora</button>
+      <p style="font-size:11px;color:var(--text3);text-align:center;margin-top:.5rem;">Pagou e não liberou na hora? Clica aí que a gente confere direto com o Asaas.</p>
+    </div>
   </div>
 </div>
 
@@ -1330,6 +1344,9 @@ let PRODUTOS={
   legume:[...CATALOGO_PADRAO.legume],
   verdura:[...CATALOGO_PADRAO.verdura]
 };
+// Padrão de tipo (caixa/unidade) e un/cx cadastrado por produto em Gerenciar Produtos.
+// PRODUTO_INFO[categoria][nome] = {tipo, unidPorCaixa}
+let PRODUTO_INFO={};
 const FORNECEDORES_PADRAO={fruta:['Agro sul','América','Barão','Bela vista','Betel','Bom Jesus','Box15','Box25','Box48','Brasnica','Welitom','Casa d frutas','Diamante','Dinho','Liberty','Fruto bom','Granada','Boa estrela','Martins','Monte vd'],legume:['Aquilino','Box111','Box113','Bruno','Carvalho','Magaretto','Minas d','Mora b','Neco','Rio Nilo','Sul coco','DP empório','Box226','Canaã'],verdura:['Aquira','Arizona','Carla','Elias','Jacarei','Lucas','Neném','P194','P198','P207','P208','P216','P217','P218','Velho','Baxinho']};
 const FORNECEDORES=FORNECEDORES_PADRAO;
 const DESPESAS_TIPO_PADRAO=['Gelo','Gasolina','Embalagem','Café','Almoço','Carregador','Estacionamento','Frete','Caixa vazia'];
@@ -2434,6 +2451,14 @@ function onTipoPlanChange(){
   const tipo=el('tipoPlan').value;
   el('unidCaixaWrap').style.display=tipo==='caixa'?'':'none';
 }
+function onProdPlanChange(){
+  const cat=el('catPlan').value,prod=el('prodPlan').value;
+  if(!prod)return;
+  const padrao=produtoPadrao(cat,prod);
+  el('tipoPlan').value=padrao.tipo;
+  el('unidPorCaixa').value=padrao.unidPorCaixa||'';
+  onTipoPlanChange();
+}
 /* ── PESQUISA DE PRODUTO NO PEDIDO ── */
 let _prodSelecionadoNome='', _prodSelecionadoCat='';
 
@@ -2619,8 +2644,9 @@ function renderTabelaGrid(){
   el('tabelaGrid').innerHTML=`<thead><tr><th>Produto</th><th style="width:90px">Qtd</th><th style="width:120px">Tipo</th><th style="width:110px">Un/cx</th></tr></thead><tbody>`+
     PRODUTOS[cat].map((p,i)=>{
       const d=tabelaDraft[cat][p]||'';
-      const dt=tabelaDraftTipo[cat][p]||'unidade';
-      const du=tabelaDraftUnid[cat][p]||'';
+      const padrao=produtoPadrao(cat,p);
+      const dt=tabelaDraftTipo[cat][p]||padrao.tipo;
+      const du=tabelaDraftUnid[cat][p]||padrao.unidPorCaixa||'';
       const hasQ=parseFloat(d)>0;
       return`<tr class="${hasQ?'has-qty':''}">
         <td style="font-size:13px;">${p}</td>
@@ -2635,6 +2661,14 @@ function renderTabelaGrid(){
       </tr>`;
     }).join('')+`</tbody>`;
 }
+function onNovoProdutoTipoChange(){
+  const tipo=el('novoProdutoTipo').value;
+  const wrap=el('novoProdutoUnidCxWrap');
+  if(!wrap)return;
+  wrap.style.opacity=tipo==='unidade'?'.3':'1';
+  wrap.style.pointerEvents=tipo==='unidade'?'none':'';
+  if(tipo==='unidade')el('novoProdutoUnidCx').value='';
+}
 function updateUnidCell(i,cat,p){
   const tipo=el('tt_'+i).value;
   const unidInp=el('tu_'+i);
@@ -2645,7 +2679,7 @@ function updateUnidCell(i,cat,p){
 function updateSalvarLabel(){let t=0;Object.keys(PRODUTOS).forEach(c=>PRODUTOS[c].forEach(p=>{if(parseFloat(tabelaDraft[c][p])>0)t++;}));el('salvarLabel').textContent=t>0?`Salvar pedido (${t} iten${t===1?'':'s'})`:'Salvar pedido';}
 function salvarTabela(){
   saveDraftFromDOM();let n=0;
-  Object.keys(PRODUTOS).forEach(cat=>{PRODUTOS[cat].forEach(p=>{const qtd=parseFloat(tabelaDraft[cat][p])||0;if(qtd>0){const tipo=tabelaDraftTipo[cat][p]||'unidade';const unid=tipo==='caixa'?(parseInt(tabelaDraftUnid[cat][p])||null):null;adicionarOuSomarPedido({produto:p,categoria:cat,qtd,tipo,unidPorCaixa:unid});tabelaDraft[cat][p]='';tabelaDraftTipo[cat][p]='unidade';tabelaDraftUnid[cat][p]='';n++;}});});
+  Object.keys(PRODUTOS).forEach(cat=>{PRODUTOS[cat].forEach(p=>{const qtd=parseFloat(tabelaDraft[cat][p])||0;if(qtd>0){const tipo=tabelaDraftTipo[cat][p]||produtoPadrao(cat,p).tipo;const unid=tipo==='caixa'?(parseInt(tabelaDraftUnid[cat][p])||null):null;adicionarOuSomarPedido({produto:p,categoria:cat,qtd,tipo,unidPorCaixa:unid});tabelaDraft[cat][p]='';tabelaDraftTipo[cat][p]='';tabelaDraftUnid[cat][p]='';n++;}});});
   renderTabelaGrid();renderPedidoTabela();renderPedido();renderPendentes();renderHistorico();updateSalvarLabel();
   if(n>0)showToast(`${n} iten${n===1?'':'s'} adicionado${n===1?'':'s'}!`);
 }
@@ -3934,20 +3968,24 @@ function exportarConferenciaEntregaPdf(){
     doc.text(`Loja: ${loja.nome||'-'}`,14,26);
     doc.text(`Data do pedido: ${formatBR(currentDate)}`,14,32);
     doc.setTextColor(0);
-    const body=itens.map(i=>[
-      labelCat(i.categoria),
-      i.produto,
-      String(i.qtd)+(i.tipo==='caixa'?' cx':' un'),
-      '',
-      ''
-    ]);
+    const body=itens.map(i=>{
+      const compra=compras.find(c=>c.itemPedidoId===i.id&&c.lojaId===currentLojaId);
+      return[
+        labelCat(i.categoria),
+        i.produto,
+        compra?compra.fornecedor||'-':'-',
+        String(i.qtd)+(i.tipo==='caixa'?' cx':' un'),
+        '',
+        ''
+      ];
+    });
     doc.autoTable({
       startY:40,
-      head:[['Categoria','Produto','Qtd pedida','Recebido?','Qtd recebida']],
+      head:[['Categoria','Produto','Fornecedor','Qtd pedida','Recebido?','Qtd recebida']],
       body,
       styles:{fontSize:9,cellPadding:4},
       headStyles:{fillColor:[96,165,250]},
-      columnStyles:{3:{cellWidth:26},4:{cellWidth:30}}
+      columnStyles:{4:{cellWidth:26},5:{cellWidth:30}}
     });
     doc.save(`conferencia-entrega-${loja.nome||'loja'}-${currentDate}.pdf`);
     showToast('PDF de conferência exportado!');
@@ -4497,7 +4535,7 @@ async function gerarCobrancaLoja(lojaId){
       return;
     }
     if(!data.link){showToast('Assinatura criada, mas o link ainda não ficou pronto. Tenta de novo em alguns segundos.');return;}
-    abrirModalPagamento(data);
+    abrirModalPagamento(data,lojaId);
   }catch(e){showToast('Erro: '+e.message);}
 }
 
@@ -4557,7 +4595,9 @@ async function renderAssinaturasTodasLojas(){
   }catch(e){cont.innerHTML='';}
 }
 
-function abrirModalPagamento(data){
+let pagamentoModalLojaId=null;
+function abrirModalPagamento(data,lojaId){
+  pagamentoModalLojaId=lojaId||currentLojaId||null;
   if(data._debug&&(data._debug.pixDebug||data._debug.boletoDebug)){
     console.warn('[Hortiz] Diagnóstico Pix/Boleto:',data._debug);
   }
@@ -4588,6 +4628,29 @@ function abrirModalPagamento(data){
   el('pagamentoModal').classList.add('open');
 }
 function fecharModalPagamento(){el('pagamentoModal').classList.remove('open');}
+async function verificarPagamentoAgora(){
+  if(!pagamentoModalLojaId){showToast('Não sei identificar a loja — fecha e abre o pagamento de novo.');return;}
+  const btn=el('btnVerificarPagamento');
+  const textoOriginal=btn?btn.innerHTML:'';
+  if(btn){btn.disabled=true;btn.innerHTML='<i class="ti ti-loader-2"></i> Verificando com o Asaas…';}
+  try{
+    const {data,error}=await db.functions.invoke('smart-service',{body:{loja_id:pagamentoModalLojaId,action:'verificar'}});
+    if(error||!data||data.error){
+      showToast('Erro ao verificar: '+(data&&data.error?data.error:await mensagemErroFuncao(error)));
+      return;
+    }
+    if(data.pago&&data.status==='ativa'){
+      showToast('Pagamento confirmado — assinatura liberada! 🎉');
+      fecharModalPagamento();
+      if(pagamentoModalLojaId===currentLojaId)await checkSubscription();
+      if(typeof renderAssinaturasTodasLojas==='function')renderAssinaturasTodasLojas();
+      if(typeof renderAssinatura==='function')renderAssinatura();
+    } else {
+      showToast('Ainda não identificamos o pagamento no Asaas. Se você acabou de pagar, espera uns segundos e tenta de novo.');
+    }
+  }catch(e){showToast('Erro ao verificar: '+e.message);}
+  finally{ if(btn){btn.disabled=false;btn.innerHTML=textoOriginal;} }
+}
 function mostrarAbaPagamento(aba){
   const nomes={pix:'Pix',boleto:'Boleto',cartao:'Cartao'};
   Object.keys(nomes).forEach(a=>{
@@ -4620,7 +4683,7 @@ async function selecionarPlanoLoja(lojaId,plano,btnEl){
       return;
     }
     if(!data.link){showToast('Assinatura criada, mas o link ainda não ficou pronto. Tenta de novo em alguns segundos.');return;}
-    abrirModalPagamento(data);
+    abrirModalPagamento(data,lojaId);
   }catch(e){
     if(btnEl)btnEl.innerHTML=textoOriginal;
     showToast('Erro: '+e.message);
@@ -4683,7 +4746,7 @@ async function selecionarPlano(plano){
       showToast('Assinatura criada, mas o link ainda não ficou pronto. Tenta de novo em alguns segundos.');
       return;
     }
-    abrirModalPagamento(data);
+    abrirModalPagamento(data,currentLojaId);
   }catch(e){
     el('payLoading').style.display='none';
     showToast('Erro ao gerar cobrança: '+e.message);
@@ -4988,19 +5051,28 @@ async function importarCsvGerenciar(tipo){
 
 async function carregarProdutos(){
   try{
-    const {data,error}=await db.from('produtos').select('categoria,nome').eq('loja_id',currentLojaId).eq('ativo',true).order('nome');
+    const {data,error}=await db.from('produtos').select('categoria,nome,tipo,unid_por_caixa').eq('loja_id',currentLojaId).eq('ativo',true).order('nome');
     if(error)return; // mantém o que já tinha carregado em caso de falha de rede
     const novo={};
-    categoriasTodas.forEach(c=>{novo[c.chave]=[];});
-    ['fruta','legume','verdura'].forEach(c=>{if(!novo[c])novo[c]=[];});
-    (data||[]).forEach(p=>{if(!novo[p.categoria])novo[p.categoria]=[];novo[p.categoria].push(p.nome);});
+    const novoInfo={};
+    categoriasTodas.forEach(c=>{novo[c.chave]=[];novoInfo[c.chave]={};});
+    ['fruta','legume','verdura'].forEach(c=>{if(!novo[c]){novo[c]=[];novoInfo[c]={};}});
+    (data||[]).forEach(p=>{
+      if(!novo[p.categoria]){novo[p.categoria]=[];novoInfo[p.categoria]={};}
+      novo[p.categoria].push(p.nome);
+      novoInfo[p.categoria][p.nome]={tipo:p.tipo||'caixa',unidPorCaixa:p.unid_por_caixa||null};
+    });
     PRODUTOS=novo;
+    PRODUTO_INFO=novoInfo;
     Object.keys(PRODUTOS).forEach(cat=>{
       if(!tabelaDraft[cat])tabelaDraft[cat]={};
       if(!tabelaDraftTipo[cat])tabelaDraftTipo[cat]={};
       if(!tabelaDraftUnid[cat])tabelaDraftUnid[cat]={};
     });
   }catch(e){}
+}
+function produtoPadrao(cat,nome){
+  return (PRODUTO_INFO[cat]&&PRODUTO_INFO[cat][nome])||{tipo:'caixa',unidPorCaixa:null};
 }
 let editingProdutoId=null;
 async function renderRelatorioSemanalPedidos(){
@@ -5393,9 +5465,9 @@ function renderGerenciarProdutosLista(){
     </div>`:''}
     <div style="flex:1;min-width:0;">
       <p style="font-size:14px;font-weight:600;">${emojiCat(p.categoria)} ${p.nome}</p>
-      <p style="font-size:12px;color:var(--text2);">${p.ativo?'Ativo':'Desativado'}</p>
+      <p style="font-size:12px;color:var(--text2);">${p.ativo?'Ativo':'Desativado'} · ${p.tipo==='unidade'?'🔢 un':'📦 cx'}${p.unid_por_caixa?' · '+p.unid_por_caixa+' un/cx':''}</p>
     </div>
-    <button class="btn-ghost btn-sm" onclick="editProduto(${p.id},'${p.nome.replace(/'/g,"\\'")}','${p.categoria}')" title="Editar"><i class="ti ti-edit"></i></button>
+    <button class="btn-ghost btn-sm" onclick="editProduto(${p.id},'${p.nome.replace(/'/g,"\\'")}','${p.categoria}','${p.tipo||'caixa'}',${p.unid_por_caixa||'null'})" title="Editar"><i class="ti ti-edit"></i></button>
     <button class="btn-ghost btn-sm" onclick="alternarProdutoAtivo(${p.id},${!p.ativo})" title="${p.ativo?'Desativar':'Reativar'}"><i class="ti ti-${p.ativo?'eye-off':'eye'}"></i></button>
     <button class="btn-danger-soft btn-sm" onclick="excluirProduto(${p.id},'${p.nome.replace(/'/g,"\\'")}')" title="Excluir"><i class="ti ti-trash"></i></button>
   </div>`).join('');
@@ -5433,10 +5505,13 @@ async function excluirTodosProdutosCategoria(){
     showToast(`${qtd} produto(s) excluído(s) da categoria ${labelCat(catFiltro)}.`);
   }catch(e){showToast('Erro ao excluir: '+e.message);}
 }
-function editProduto(id,nome,categoria){
+function editProduto(id,nome,categoria,tipo,unidPorCaixa){
   editingProdutoId=id;
   el('novoProdutoNome').value=nome;
   el('novoProdutoCategoria').value=categoria;
+  el('novoProdutoTipo').value=tipo||'caixa';
+  el('novoProdutoUnidCx').value=unidPorCaixa||'';
+  onNovoProdutoTipoChange();
   el('btnSalvarProduto').innerHTML='<i class="ti ti-device-floppy"></i> Salvar alteração';
   el('btnCancelProduto').style.display='';
   el('novoProdutoNome').scrollIntoView({behavior:'smooth',block:'center'});
@@ -5444,23 +5519,31 @@ function editProduto(id,nome,categoria){
 function cancelEditProduto(){
   editingProdutoId=null;
   el('novoProdutoNome').value='';
+  el('novoProdutoTipo').value='caixa';
+  el('novoProdutoUnidCx').value='';
+  onNovoProdutoTipoChange();
   el('btnSalvarProduto').innerHTML='<i class="ti ti-plus"></i> Adicionar';
   el('btnCancelProduto').style.display='none';
 }
 async function adicionarProduto(){
   const nome=el('novoProdutoNome').value.trim();
   const categoria=el('novoProdutoCategoria').value;
+  const tipo=el('novoProdutoTipo').value;
+  const unidPorCaixa=tipo==='caixa'?(parseInt(el('novoProdutoUnidCx').value)||null):null;
   if(!nome){showToast('Digite o nome do produto');return;}
   try{
     if(editingProdutoId!==null){
-      const {error}=await db.from('produtos').update({nome,categoria}).eq('id',editingProdutoId);
+      const {error}=await db.from('produtos').update({nome,categoria,tipo,unid_por_caixa:unidPorCaixa}).eq('id',editingProdutoId);
       if(error){showToast('Erro: '+error.message);return;}
       showToast(nome+' atualizado!');
       cancelEditProduto();
     } else {
-      const {error}=await db.from('produtos').upsert({loja_id:currentLojaId,categoria,nome,ativo:true},{onConflict:'loja_id,categoria,nome'});
+      const {error}=await db.from('produtos').upsert({loja_id:currentLojaId,categoria,nome,tipo,unid_por_caixa:unidPorCaixa,ativo:true},{onConflict:'loja_id,categoria,nome'});
       if(error){showToast('Erro: '+error.message);return;}
       el('novoProdutoNome').value='';
+      el('novoProdutoTipo').value='caixa';
+      el('novoProdutoUnidCx').value='';
+      onNovoProdutoTipoChange();
       showToast(nome+' adicionado!');
     }
     await carregarProdutos();
@@ -5660,7 +5743,7 @@ function init(){
   el('despesaList').innerHTML=DESPESAS_TIPO.map(t=>`<option value="${t}">`).join('');
   renderTodosSeletoresCategoria();
   onTipoPlanChange();
-  populateProdutos('catPlan','prodPlan');populateProdutos('catAvulso','prodAvulso');populateFornecedores('catAvulso','fornAvulsoList');
+  populateProdutos('catPlan','prodPlan');onProdPlanChange();populateProdutos('catAvulso','prodAvulso');populateFornecedores('catAvulso','fornAvulsoList');
   refreshHeadings();renderHistorico();renderAll();switchCatTabela(listaCatComFallback()[0].chave);
   populateInvLoja();renderUsuarios();renderLojas();initColorSwatches();renderFornecedoresCadastro();
   const viewSalva=localStorage.getItem(chaveLS('ceasa_gerenciar_view'));
