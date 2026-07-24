@@ -226,6 +226,17 @@ button{font-family:inherit;font-size:14px;font-weight:600;cursor:pointer;border-
 .sh{font-size:13.5px;font-weight:700;color:var(--text);margin:1rem 0 .5rem;display:flex;align-items:center;gap:6px;}
 .sh::after{content:'';flex:1;height:1px;background:var(--border);}
 
+/* ── DATE BAR (aba Compras) ── */
+.compra-date-bar{display:flex;align-items:center;gap:4px;background:var(--accent-bg);border:1px solid var(--accent-d);border-radius:var(--radius);padding:.375rem;margin-bottom:.75rem;}
+.compra-date-bar .btn-icon{color:var(--accent);flex-shrink:0;padding:6px;}
+.compra-date-bar .btn-icon:hover{background:rgba(0,0,0,.06);border-radius:var(--radius-sm);}
+.compra-date-pill{flex:1;text-align:center;font-size:14px;font-weight:700;color:var(--accent);display:flex;align-items:center;justify-content:center;gap:6px;}
+.compra-date-pill i{font-size:16px;}
+
+/* ── EXPORT GROUP (botões de PDF agrupados) ── */
+.export-group{display:flex;gap:6px;flex-wrap:wrap;align-items:center;background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius-sm);padding:.375rem .5rem;}
+.export-group-label{font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.04em;display:flex;align-items:center;gap:4px;margin-right:2px;}
+
 /* ── STICKY SAVE ── */
 #sticky-save{position:fixed;left:0;right:0;bottom:56px;padding:10px 1rem;background:linear-gradient(0deg,var(--bg) 70%,transparent);z-index:95;display:none;}
 #sticky-save button{display:flex;}
@@ -508,21 +519,22 @@ button{font-family:inherit;font-size:14px;font-weight:600;cursor:pointer;border-
 
       <!-- COMPRAS -->
       <section id="tab-compras" style="display:none;">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.75rem;gap:8px;flex-wrap:wrap;">
-          <p id="comprarHeading" style="font-size:16px;font-weight:700;margin:0;"></p>
+        <div class="compra-date-bar">
+          <button class="btn-icon" onclick="navegarDiaCompra(-1)" title="Dia anterior com pedido"><i class="ti ti-chevron-left"></i></button>
+          <div class="compra-date-pill"><i class="ti ti-calendar-event"></i><span id="comprarHeading"></span></div>
+          <button class="btn-icon" onclick="navegarDiaCompra(1)" title="Próximo dia com pedido"><i class="ti ti-chevron-right"></i></button>
+        </div>
+
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-bottom:.75rem;">
           <button class="btn-ghost btn-sm" onclick="switchTab('pedidos')" style="gap:6px;flex-shrink:0;">
             <i class="ti ti-clipboard-list"></i> Ver pedido
           </button>
-          <button class="btn-ghost btn-sm" onclick="exportarConferenciaEntregaPdf()" style="gap:6px;flex-shrink:0;">
-            <i class="ti ti-file-type-pdf"></i> Exportar conferência (PDF)
-          </button>
+          <div class="export-group">
+            <span class="export-group-label"><i class="ti ti-file-type-pdf"></i> PDF</span>
+            <button class="btn-ghost btn-sm" onclick="exportarConferenciaEntregaPdf()">Conferência de entrega</button>
+          </div>
         </div>
 
-        <div style="display:flex;align-items:center;gap:8px;margin-bottom:.625rem;">
-          <button class="btn-ghost btn-sm" onclick="navegarDiaCompra(-1)" title="Dia anterior com pedido" style="flex-shrink:0;"><i class="ti ti-chevron-left"></i></button>
-          <span style="flex:1;text-align:center;font-size:12px;color:var(--text2);">Navegar entre dias com pedido registrado</span>
-          <button class="btn-ghost btn-sm" onclick="navegarDiaCompra(1)" title="Próximo dia com pedido" style="flex-shrink:0;"><i class="ti ti-chevron-right"></i></button>
-        </div>
         <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:.875rem;">
           <button class="btn-ghost btn-sm" onclick="buscarSemanaCompras(0)">Semana 1</button>
           <button class="btn-ghost btn-sm" onclick="buscarSemanaCompras(1)">Semana 2</button>
@@ -536,9 +548,10 @@ button{font-family:inherit;font-size:14px;font-weight:600;cursor:pointer;border-
           <div id="voltarComprasNormalWrap" style="display:none;margin-bottom:.625rem;">
             <a href="#" onclick="event.preventDefault();voltarComprasNormal()" style="font-size:12px;color:var(--text2);">← Voltar pra visão da loja atual</a>
           </div>
-          <div style="display:flex;justify-content:flex-end;gap:8px;margin-bottom:.625rem;flex-wrap:wrap;">
-            <button class="btn-ghost btn-sm" onclick="exportarPedidoConsolidadoTotalPdf()"><i class="ti ti-file-type-pdf"></i> Exportar lista total (todas as lojas somadas)</button>
-            <button class="btn-ghost btn-sm" onclick="exportarRelatorioCompradorPdf()"><i class="ti ti-file-type-pdf"></i> Exportar relatório por loja (PDF)</button>
+          <div class="export-group" style="justify-content:flex-end;margin-bottom:.625rem;">
+            <span class="export-group-label"><i class="ti ti-file-type-pdf"></i> PDF</span>
+            <button class="btn-ghost btn-sm" onclick="exportarPedidoConsolidadoTotalPdf()">Lista total (todas as lojas)</button>
+            <button class="btn-ghost btn-sm" onclick="exportarRelatorioCompradorPdf()">Relatório por loja</button>
           </div>
           <div class="cat-btn-bar" style="display:flex;gap:6px;flex-wrap:wrap;" id="comprCatBtns"></div>
           <p style="font-size:11px;color:var(--text2);margin:.5rem 0 .875rem;">Pedido consolidado de todas as lojas vinculadas a você como comprador — confirmar aqui distribui automaticamente pra cada loja de origem.</p>
