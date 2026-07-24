@@ -1302,6 +1302,14 @@ button{font-family:inherit;font-size:14px;font-weight:600;cursor:pointer;border-
   <div class="modal-box">
     <div class="modal-head"><span class="modal-title" id="produtosSetupTitulo"><i class="ti ti-apple"></i> Base de produtos da loja</span></div>
     <p id="produtosSetupProgresso" style="font-size:11px;color:var(--text3);margin:-.5rem 0 .75rem;"></p>
+    <div id="produtosSetupTipoPadraoWrap" style="display:none;margin-bottom:.875rem;padding:.625rem .75rem;background:var(--bg3);border-radius:var(--radius-sm);">
+      <label style="font-size:12px;color:var(--text2);display:block;margin-bottom:.375rem;">Esses produtos entram como padrão caixa ou unidade?</label>
+      <select id="produtosSetupTipoPadrao" style="width:100%;">
+        <option value="caixa">📦 Caixa</option>
+        <option value="unidade">🔢 Unidade</option>
+      </select>
+      <p style="font-size:11px;color:var(--text3);margin-top:.375rem;">Dá pra mudar depois, produto por produto, em Gerenciar → Produtos.</p>
+    </div>
     <div id="produtosSetupPasso1">
       <p style="font-size:13px;color:var(--text2);margin-bottom:1rem;" id="produtosSetupPergunta">Sua loja foi criada! Como você quer começar a lista de produtos (frutas, legumes, verduras)?</p>
       <button class="btn-primary btn-w" style="margin-bottom:.625rem;justify-content:flex-start;" onclick="escolherSetupProdutos('pronta')">
@@ -4806,6 +4814,10 @@ function abrirSetupPasso(){
   el('produtosSetupBtnPronta').textContent=cfg.pronta;
   el('produtosSetupCsvInstrucao').innerHTML=cfg.csvInstrucao;
   el('produtosSetupCsvExemplo').textContent=cfg.csvExemplo;
+  const tipoPadraoWrap=document.getElementById('produtosSetupTipoPadraoWrap');
+  if(tipoPadraoWrap)tipoPadraoWrap.style.display=tipo==='produtos'?'block':'none';
+  const tipoPadraoSel=document.getElementById('produtosSetupTipoPadrao');
+  if(tipoPadraoSel)tipoPadraoSel.value='caixa';
   document.getElementById('produtosSetupPasso1').style.display='block';
   document.getElementById('produtosSetupImportar').style.display='none';
   const fi=document.getElementById('produtosCsvInput');if(fi)fi.value='';
@@ -4862,8 +4874,9 @@ async function escolherSetupProdutos(opcao){
     try{
       let error;
       if(tipo==='produtos'){
+        const tipoPadrao=document.getElementById('produtosSetupTipoPadrao')?.value||'caixa';
         const linhas=[];
-        ['fruta','legume','verdura'].forEach(cat=>{CATALOGO_PADRAO[cat].forEach(nome=>{linhas.push({loja_id:setupLojaIdAtual,categoria:cat,nome});});});
+        ['fruta','legume','verdura'].forEach(cat=>{CATALOGO_PADRAO[cat].forEach(nome=>{linhas.push({loja_id:setupLojaIdAtual,categoria:cat,nome,tipo:tipoPadrao});});});
         ({error}=await db.from('produtos').upsert(linhas,{onConflict:'loja_id,categoria,nome'}));
       } else if(tipo==='fornecedores'){
         const linhas=[];
@@ -4990,7 +5003,8 @@ async function importarSetupCsv(){
     statusEl.textContent=`Importando ${resultado.length} item(ns)…`;
     let error;
     if(tipo==='produtos'){
-      const linhas=resultado.map(r=>({loja_id:setupLojaIdAtual,categoria:r.categoria,nome:r.nome}));
+      const tipoPadrao=document.getElementById('produtosSetupTipoPadrao')?.value||'caixa';
+      const linhas=resultado.map(r=>({loja_id:setupLojaIdAtual,categoria:r.categoria,nome:r.nome,tipo:tipoPadrao}));
       ({error}=await db.from('produtos').upsert(linhas,{onConflict:'loja_id,categoria,nome'}));
     } else if(tipo==='fornecedores'){
       const linhas=resultado.map(r=>({loja_id:setupLojaIdAtual,categoria:r.categoria,nome:r.nome,padrao:false}));
